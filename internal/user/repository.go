@@ -11,6 +11,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *User) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
+	FindByID(ctx context.Context, userId primitive.ObjectID) (*UserWithProfile, error)
 	UpdateByID(ctx context.Context, userID string, updateFields bson.M) error
 }
 
@@ -20,6 +21,39 @@ type userRepository struct {
 
 func NewUserRepository(collection *mongo.Collection) UserRepository {
 	return &userRepository{collection: collection}
+}
+
+func (r *userRepository) FindByID(ctx context.Context, userID primitive.ObjectID) (*UserWithProfile, error) {
+
+	matchStage := bson.D{{Key: "$match", Value: bson.D{{Key: "_id", Value: userID}}}}
+
+	lookupStage := bson.D{{Key: "$lookup", Value: bson.D{
+		{Key: "from", Value: "profiles"},
+		{Key: "localField", Value: "_id"},
+		{Key: "foreignField", Value: "user_id"},
+		{Key: "as", Value: "profile"},
+	}}}
+
+
+	unwindStage := bson.D{{Key: "$unwind", Value: bson.D{
+		{Key: "path", Value: "$profile"},
+		{Key: "preserveNullAndEmptyArrays", Value: true},
+	}}}
+
+	cursor, err := r.collection.Aggregate(ctx, mongo.Pipeline{matchStage, lookupStage, unwindStage})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if cursor.Next(ctx) {
+		var user UserWithProfile
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		return &user, nil
+	}
+	return nil, nil
 }
 
 func (r *userRepository) Create(ctx context.Context, user *User) (*User, error) {

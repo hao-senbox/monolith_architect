@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"modular_monolith/config"
+	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
 	"net/http"
 	"time"
@@ -39,6 +40,11 @@ func main() {
 	userService := user.NewUserService(userRepository)
 	userHandler := user.NewUserHandler(userService)
 
+	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
+	profileRepository := profile.NewProfileRepository(profilesCollection)
+	profileService := profile.NewProfileService(profileRepository)
+	profileHandler := profile.NewProfileHandler(profileService)
+
 	r := gin.Default()
 	r.LoadHTMLGlob("web/*")
 	r.GET("/login", func(c *gin.Context) {
@@ -46,6 +52,7 @@ func main() {
 	})
 
 	user.RegisterRoutes(r, userHandler)
+	profile.RegisterRoutes(r, profileHandler)
 	r.Run(":8003")
 	
 }

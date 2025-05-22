@@ -21,7 +21,7 @@ func JWTAuthMiddleware () gin.HandlerFunc {
 			return
 		}
 
-		parts := strings.Split(authHeader, "")
+		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
@@ -48,7 +48,7 @@ func JWTAuthMiddleware () gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			c.Set("email", claims["email"])
+			c.Set("user_id", claims["user_id"])
 		}
 
 		c.Next()

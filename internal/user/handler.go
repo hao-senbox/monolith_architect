@@ -15,6 +15,20 @@ func NewUserHandler(service UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+
+	userID := c.Param("user_id")
+
+	user, err := h.service.GetUserByID(c, userID)
+
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", user)
+}
+
 func (h *UserHandler) RegisterUser(c *gin.Context) {
 
 	var req RegisterRequest

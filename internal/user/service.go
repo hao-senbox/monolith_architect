@@ -18,7 +18,7 @@ import (
 type UserService interface {
 	RegisterUser(ctx context.Context, req *RegisterRequest) (*User, error)
 	LoginUser(ctx context.Context, email, password string) (*User, error)
-	// GetUserByID(ctx context.Context, userID string) (*User, error)
+	GetUserByID(ctx context.Context, userID string) (*UserWithProfile, error)
 	ValidateToken(tokenString string) (*jwt.Token, error)
 	RefreshToken(refreshToken string) (string, string, error)
 }
@@ -30,6 +30,18 @@ type userService struct {
 func NewUserService(repository UserRepository) UserService {
 	return &userService{repository: repository}
 }
+
+func (s *userService) GetUserByID(ctx context.Context, userID string) (*UserWithProfile, error) {
+	fmt.Printf("UserID: %+v\n", userID)
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repository.FindByID(ctx, objectID)
+
+}
+
 
 func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*User, error) {
 	fmt.Printf("RegisterUser: %+v\n", req)
@@ -56,11 +68,12 @@ func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 	}
 
 	hashedPassword := s.HashPassword(req.Password)
-	token, refreshToken := s.GenerateToken(req.Email)
+	newUserID := primitive.NewObjectID()
+	token, refreshToken := s.GenerateToken(newUserID)
 
 	now := time.Now().Format(time.RFC3339)
 	user = &User{
-		ID:           primitive.NewObjectID(),
+		ID:           newUserID,
 		FristName:    req.FristName,
 		LastName:     req.LastName,
 		Email:        req.Email,
@@ -88,7 +101,7 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 	}
 
 	user, err := s.repository.FindByEmail(ctx, email)
-	if err != nil {
+	if err != nil || user == nil {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
@@ -97,9 +110,8 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	token, refreshToken := s.GenerateToken(user.Email)
+	token, refreshToken := s.GenerateToken(user.ID)
 	
-	// Update user with new tokens
 	updateFields := bson.M{
 		"token":        token,
 		"refreshToken": refreshToken,
@@ -117,6 +129,7 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 	
 	return user, nil
 }
+
 
 // func (s *userService) GetUserByID(ctx context.Context, userID string) (*User, error) {
 // 	if userID == "" {
@@ -153,15 +166,15 @@ func (s *userService) VerifyPassword(userPassword string, providedPassword strin
 	return check, msg
 }
 
-func (s *userService) GenerateToken(email string) (string, string) {
+func (s *userService) GenerateToken(userID primitive.ObjectID) (string, string) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Panic("JWT_SECRET not set")
 	}
 
 	claims := jwt.MapClaims{
-		"email": email,
-		"exp":   jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
+		"user_id": userID,
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -171,8 +184,8 @@ func (s *userService) GenerateToken(email string) (string, string) {
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": email,
-		"exp":   jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+		"user_id": userID,
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 	})
 	refreshTokenString, err := refreshToken.SignedString([]byte(secret))
 	if err != nil {
@@ -222,11 +235,11 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 		return "", "", errors.New("invalid token claims")
 	}
 
-	email, ok := claims["email"].(string)
+	user_id, ok := claims["user_id"].(primitive.ObjectID)
 	if !ok {
 		return "", "", errors.New("invalid email in token")
 	}
 
-	newToken, newRefreshToken := s.GenerateToken(email)
+	newToken, newRefreshToken := s.GenerateToken(user_id)
 	return newToken, newRefreshToken, nil
 }
