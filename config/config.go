@@ -6,6 +6,7 @@ type Config struct {
 	Port string
 	MongoURI string
 	MongoDB string
+	Clouldinary string
 }
 
 func LoadConfig() *Config {
@@ -13,6 +14,7 @@ func LoadConfig() *Config {
 		Port: getEnv("PORT", "8005"),
 		MongoURI: getEnv("MONGO_URI", "mongodb://localhost:27015"),
 		MongoDB: getEnv("MONGO_DB", "modular-monolith"),
+		Clouldinary: getEnv("CLOUDINARY_URL", ""),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"modular_monolith/config"
+	"modular_monolith/internal/cloudinaryutil"
 	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
 	"net/http"
@@ -24,6 +25,11 @@ func main() {
 
 	cfg := config.LoadConfig()
 
+	cld, err := cloudinaryutil.NewCloudinaryUploader(cfg.Clouldinary)
+	if err != nil {
+		panic(err)
+	}
+
 	mongoClient, err := connectToMongoDB(cfg.MongoURI)
 	if err != nil {
 		panic(err)
@@ -42,7 +48,7 @@ func main() {
 
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
 	profileRepository := profile.NewProfileRepository(profilesCollection)
-	profileService := profile.NewProfileService(profileRepository)
+	profileService := profile.NewProfileService(profileRepository, cld)
 	profileHandler := profile.NewProfileHandler(profileService)
 
 	r := gin.Default()

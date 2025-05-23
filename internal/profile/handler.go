@@ -3,7 +3,6 @@ package profile
 import (
 	"modular_monolith/helper"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,12 +20,18 @@ func (h *ProfileHandler) CreateProfile(c *gin.Context) {
 	
 	var req CreateProfileRequest
 	
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
 		return
 	}
 
-	err := h.ProfileService.CreateProfile(c, &req)
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err = h.ProfileService.CreateProfile(c, &req, file)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)

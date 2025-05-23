@@ -3,11 +3,14 @@ package profile
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ProfileRepository interface {
 	Create(ctx context.Context, profile *Profile) error
+	FindByUserID(ctx context.Context, userID primitive.ObjectID) (*Profile, error)
 }
 
 type profileRepository struct {
@@ -26,4 +29,19 @@ func (r *profileRepository) Create(ctx context.Context, profile *Profile) error 
 	}
 
 	return nil
+}
+
+func (r *profileRepository) FindByUserID(ctx context.Context, userID primitive.ObjectID) (*Profile, error) {
+
+	filter := bson.M{"user_id": userID}
+
+	var profile Profile
+
+	err := r.collection.FindOne(ctx, filter).Decode(&profile)
+	if err != nil {
+		return nil, err
+	}
+
+	return &profile, nil
+
 }
