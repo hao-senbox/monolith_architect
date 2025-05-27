@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"modular_monolith/internal/profile"
 	"os"
 	"time"
 
@@ -19,20 +20,52 @@ type UserService interface {
 	RegisterUser(ctx context.Context, req *RegisterRequest) (*User, error)
 	LoginUser(ctx context.Context, email, password string) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*UserWithProfile, error)
+	GetAllUsers(ctx context.Context) ([]*UserWithProfile, error)
+	DeleteUser(ctx context.Context, userID string) error
 	ValidateToken(tokenString string) (*jwt.Token, error)
 	RefreshToken(refreshToken string) (string, string, error)
 }
 
 type userService struct {
 	repository UserRepository
+	profileService profile.ProfileService
 }
 
-func NewUserService(repository UserRepository) UserService {
-	return &userService{repository: repository}
+func NewUserService(repository UserRepository, profileService profile.ProfileService) UserService {
+	return &userService{
+		repository: repository,
+		profileService: profileService,
+	}
+}
+
+func (s *userService) GetAllUsers(ctx context.Context) ([]*UserWithProfile, error) {
+
+	return s.repository.FindAll(ctx)
+	
+}
+
+func (s *userService) DeleteUser(ctx context.Context, userID string) error {
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+
+	err = s.repository.DeleteByID(ctx, objectID)
+	if err != nil {
+		return err
+	}
+
+	err = s.profileService.DeleteProfile(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *userService) GetUserByID(ctx context.Context, userID string) (*UserWithProfile, error) {
-	fmt.Printf("UserID: %+v\n", userID)
+
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, err
@@ -129,22 +162,6 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 	
 	return user, nil
 }
-
-
-// func (s *userService) GetUserByID(ctx context.Context, userID string) (*User, error) {
-// 	if userID == "" {
-// 		return nil, fmt.Errorf("user ID is required")
-// 	}
-
-// 	user, err := s.repository.FindByID(ctx, userID)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("user not found: %w", err)
-// 	}
-
-// 	// Don't return the password
-// 	user.Password = ""
-// 	return user, nil
-// }
 
 func (s *userService) HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)

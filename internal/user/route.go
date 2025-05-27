@@ -1,13 +1,19 @@
 package user
 
-import "github.com/gin-gonic/gin"
+import (
+	"modular_monolith/middleware"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(r *gin.Engine, handler *UserHandler) {
 
 	userGroup := r.Group("/api/v1/user") 
 	{
-		userGroup.GET("/:user_id", handler.GetUserByID)
 		userGroup.POST("/register", handler.RegisterUser)
-		userGroup.POST("/login", handler.LoginUser)	
+		userGroup.POST("/login", handler.LoginUser)
+		userGroup.GET("", middleware.JWTAuthMiddleware(), handler.GetAllUsers)
+		userGroup.GET("/:user_id", middleware.JWTAuthMiddleware(), handler.GetUserByID)
+		userGroup.DELETE(":user_id", middleware.JWTAuthMiddleware(), handler.DeleteUser)	
 	}
 }

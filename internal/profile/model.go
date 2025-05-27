@@ -13,6 +13,7 @@ type Profile struct {
 	Gender    string             `json:"gender" bson:"gender"`
 	BirthDay  time.Time          `json:"birth_day" bson:"birth_day"`
 	Avatar    string             `json:"avatar" bson:"avatar"`
+	PublicID  string             `json:"public_id" bson:"public_id"`
 	Address   string             `json:"address" bson:"address"`
 	Bio       *string            `json:"bio" bson:"bio"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
@@ -29,11 +30,11 @@ type CreateProfileRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	UserID   primitive.ObjectID `json:"user_id" bson:"user_id"`
-	FullName string             `json:"full_name" bson:"full_name"`
-	Gender   string             `json:"gender" bson:"gender"`
-	BirthDay string             `json:"birth_day" bson:"birth_day"`
-	Avatar   string             `json:"avatar" bson:"avatar"`
-	Address  string             `json:"address" bson:"address"`
-	Bio      string             `json:"bio" bson:"bio"`
+	UserID   string `form:"user_id" bson:"user_id"`
+	FullName string `form:"full_name" bson:"full_name"`
+	Gender   string `form:"gender" bson:"gender"`
+	BirthDay string `form:"birth_day" bson:"birth_day"`
+	PublicID string `form:"public_id" bson:"public_id"`
+	Address  string `form:"address" bson:"address"`
+	Bio      string `form:"bio" bson:"bio"`
 }

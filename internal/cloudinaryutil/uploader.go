@@ -18,12 +18,34 @@ func NewCloudinaryUploader(cloudinaryURL string) (*CloudinaryUploader, error) {
 	return &CloudinaryUploader{cld: cld}, nil
 }
 
-func (u *CloudinaryUploader) UploadImage(ctx context.Context, image string, folderName string) (string, error) {
+func (u *CloudinaryUploader) UploadImage(ctx context.Context, image string, folderName string) (string, string, error) {
 	result, err := u.cld.Upload.Upload(ctx, image, uploader.UploadParams{
 		Folder: folderName,
+	})
+	if err != nil {
+		return "", "", err
+	}
+	return result.SecureURL, result.PublicID, nil
+}
+
+func (u *CloudinaryUploader) EditImage(ctx context.Context, image string, publicID string) (string, error) {
+	overwrite := true
+	result, err := u.cld.Upload.Upload(ctx, image, uploader.UploadParams{
+		PublicID: publicID, 	     
+		Overwrite: &overwrite, 
 	})
 	if err != nil {
 		return "", err
 	}
 	return result.SecureURL, nil
+}
+
+func (u *CloudinaryUploader) DeleteImage(ctx context.Context, publicID string) error {
+	_, err := u.cld.Upload.Destroy(ctx, uploader.DestroyParams{
+		PublicID: publicID,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

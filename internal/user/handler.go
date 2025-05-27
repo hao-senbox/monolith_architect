@@ -15,6 +15,17 @@ func NewUserHandler(service UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
+
+	users, err := h.service.GetAllUsers(c)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", users)
+}
+
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 
 	userID := c.Param("user_id")
@@ -66,4 +77,18 @@ func (h *UserHandler) LoginUser(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusOK, "success", user)
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	
+	userID := c.Param("user_id")
+
+	err := h.service.DeleteUser(c, userID)
+
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
 }

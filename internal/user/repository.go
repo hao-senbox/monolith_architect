@@ -9,10 +9,12 @@ import (
 )
 
 type UserRepository interface {
+	FindAll(ctx context.Context) ([]*UserWithProfile, error)
 	Create(ctx context.Context, user *User) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, userId primitive.ObjectID) (*UserWithProfile, error)
 	UpdateByID(ctx context.Context, userID string, updateFields bson.M) error
+	DeleteByID(ctx context.Context, userID primitive.ObjectID) error
 }
 
 type userRepository struct {
@@ -21,6 +23,36 @@ type userRepository struct {
 
 func NewUserRepository(collection *mongo.Collection) UserRepository {
 	return &userRepository{collection: collection}
+}
+
+func (r *userRepository) DeleteByID(ctx context.Context, userID primitive.ObjectID) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": userID})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *userRepository) FindAll(ctx context.Context) ([]*UserWithProfile, error) {
+
+	var userAll []*UserWithProfile
+
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var user UserWithProfile
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		userAll = append(userAll, &user)
+	}
+
+	return userAll, nil
+	
 }
 
 func (r *userRepository) FindByID(ctx context.Context, userID primitive.ObjectID) (*UserWithProfile, error) {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -42,7 +43,15 @@ func JWTAuthMiddleware () gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.JSON(401, gin.H{"error": "Unauthorized"})
+			var ve *jwt.ValidationError
+			if errors.As(err, &ve) {
+				if ve.Errors&jwt.ValidationErrorExpired != 0 {
+					c.JSON(401, gin.H{"error": "Token expired"})
+					c.Abort()
+					return
+				}
+			}
+			c.JSON(401, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}

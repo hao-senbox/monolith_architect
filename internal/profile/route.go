@@ -11,5 +11,6 @@ func RegisterRoutes(r *gin.Engine, handler *ProfileHandler) {
 	{
 		profileGroup.Use(middleware.JWTAuthMiddleware())
 		profileGroup.POST("/", handler.CreateProfile)
+		profileGroup.PUT("/", handler.UpdateProfile)
 	}
 }

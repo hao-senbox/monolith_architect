@@ -41,15 +41,15 @@ func main() {
 		}
 	}()
 
-	usersCollection := mongoClient.Database(cfg.MongoDB).Collection("users")
-	userRepository := user.NewUserRepository(usersCollection)
-	userService := user.NewUserService(userRepository)
-	userHandler := user.NewUserHandler(userService)
-
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
 	profileRepository := profile.NewProfileRepository(profilesCollection)
 	profileService := profile.NewProfileService(profileRepository, cld)
 	profileHandler := profile.NewProfileHandler(profileService)
+
+	usersCollection := mongoClient.Database(cfg.MongoDB).Collection("users")
+	userRepository := user.NewUserRepository(usersCollection)
+	userService := user.NewUserService(userRepository, profileService)
+	userHandler := user.NewUserHandler(userService)
 
 	r := gin.Default()
 	r.LoadHTMLGlob("web/*")
