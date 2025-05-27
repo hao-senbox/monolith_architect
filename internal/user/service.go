@@ -41,7 +41,6 @@ func NewUserService(repository UserRepository, profileService profile.ProfileSer
 func (s *userService) GetAllUsers(ctx context.Context) ([]*UserWithProfile, error) {
 
 	return s.repository.FindAll(ctx)
-	
 }
 
 func (s *userService) DeleteUser(ctx context.Context, userID string) error {
@@ -102,7 +101,7 @@ func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 
 	hashedPassword := s.HashPassword(req.Password)
 	newUserID := primitive.NewObjectID()
-	token, refreshToken := s.GenerateToken(newUserID)
+	token, refreshToken := s.GenerateToken(newUserID.String())
 
 	now := time.Now().Format(time.RFC3339)
 	user = &User{
@@ -143,7 +142,8 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	token, refreshToken := s.GenerateToken(user.ID)
+
+	token, refreshToken := s.GenerateToken(user.ID.String())
 	
 	updateFields := bson.M{
 		"token":        token,
@@ -183,7 +183,7 @@ func (s *userService) VerifyPassword(userPassword string, providedPassword strin
 	return check, msg
 }
 
-func (s *userService) GenerateToken(userID primitive.ObjectID) (string, string) {
+func (s *userService) GenerateToken(userID string) (string, string) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Panic("JWT_SECRET not set")
@@ -252,7 +252,7 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 		return "", "", errors.New("invalid token claims")
 	}
 
-	user_id, ok := claims["user_id"].(primitive.ObjectID)
+	user_id, ok := claims["user_id"].(string)
 	if !ok {
 		return "", "", errors.New("invalid email in token")
 	}

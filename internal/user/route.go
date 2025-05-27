@@ -12,8 +12,9 @@ func RegisterRoutes(r *gin.Engine, handler *UserHandler) {
 	{
 		userGroup.POST("/register", handler.RegisterUser)
 		userGroup.POST("/login", handler.LoginUser)
-		userGroup.GET("", middleware.JWTAuthMiddleware(), handler.GetAllUsers)
+		userGroup.GET("/", middleware.JWTAuthMiddleware(), handler.GetAllUsers)
 		userGroup.GET("/:user_id", middleware.JWTAuthMiddleware(), handler.GetUserByID)
-		userGroup.DELETE(":user_id", middleware.JWTAuthMiddleware(), handler.DeleteUser)	
+		userGroup.DELETE("/:user_id", middleware.JWTAuthMiddleware(), handler.DeleteUser)
+		userGroup.GET("/refresh", handler.RefreshToken)	
 	}
 }

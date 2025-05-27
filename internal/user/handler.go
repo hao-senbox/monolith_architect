@@ -15,6 +15,22 @@ func NewUserHandler(service UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+
+	refreshToken := c.Query("refresh_token")
+
+	newToken, newRefreshToken, err := h.service.RefreshToken(refreshToken)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", map[string]string{
+		"token":        newToken,
+		"refreshToken": newRefreshToken,
+	})
+}
+
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
 	users, err := h.service.GetAllUsers(c)
