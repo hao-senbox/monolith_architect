@@ -8,7 +8,6 @@ import (
 	"modular_monolith/internal/cloudinaryutil"
 	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
-	"net/http"
 	"os"
 	"time"
 
