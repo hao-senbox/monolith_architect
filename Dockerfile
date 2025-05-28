@@ -1,5 +1,5 @@
 # Sử dụng image chính thức của Golang
-FROM golang:1.21 as builder
+FROM golang:1.24 as builder
 
 WORKDIR /app
 
