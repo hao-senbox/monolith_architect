@@ -65,10 +65,10 @@ func main() {
 	categoryHandler := category.NewCategoryHandler(categoryService)
 
 	r := gin.Default()
-	r.LoadHTMLGlob("web/*")
-	r.GET("/login", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "login.html", gin.H{})
-	})
+	// r.LoadHTMLGlob("web/*")
+	// r.GET("/login", func(c *gin.Context) {
+	// 	c.HTML(http.StatusOK, "login.html", gin.H{})
+	// })
 
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
