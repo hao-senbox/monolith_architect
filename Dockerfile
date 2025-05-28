@@ -10,8 +10,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build ứng dụng
-RUN go build -o main .
+# Build ứng dụng từ đúng path
+RUN go build -o main ./cmd/server
 
 # Stage chạy app
 FROM debian:bullseye-slim
@@ -19,9 +19,7 @@ FROM debian:bullseye-slim
 # Cài đặt CA-certificates (bắt buộc cho HTTPS)
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Tạo thư mục ứng dụng
 WORKDIR /app
-
 
 # Copy binary từ stage builder
 COPY --from=builder /app/main .
