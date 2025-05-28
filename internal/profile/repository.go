@@ -10,7 +10,7 @@ import (
 
 type ProfileRepository interface {
 	Create(ctx context.Context, profile *Profile) error
-	Update(ctx context.Context, profile *Profile) error
+	UpdateByID(ctx context.Context, profile *Profile) error
 	FindByUserID(ctx context.Context, userID primitive.ObjectID) (*Profile, error)
 	DeleteByID(ctx context.Context, userID primitive.ObjectID) error
 }
@@ -48,7 +48,7 @@ func (r *profileRepository) FindByUserID(ctx context.Context, userID primitive.O
 
 }
 
-func (r *profileRepository) Update(ctx context.Context, profile *Profile) error {
+func (r *profileRepository) UpdateByID(ctx context.Context, profile *Profile) error {
 
 	filter := bson.M{"user_id": profile.UserID}
 

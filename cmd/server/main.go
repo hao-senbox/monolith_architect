@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"modular_monolith/config"
+	"modular_monolith/internal/category"
 	"modular_monolith/internal/cloudinaryutil"
 	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
@@ -51,6 +52,11 @@ func main() {
 	userService := user.NewUserService(userRepository, profileService)
 	userHandler := user.NewUserHandler(userService)
 
+	categories := mongoClient.Database(cfg.MongoDB).Collection("categories")
+	categoryRepository := category.NewCategoryRepository(categories)
+	categoryService := category.NewCategoryService(categoryRepository)
+	categoryHandler := category.NewCategoryHandler(categoryService)
+
 	r := gin.Default()
 	r.LoadHTMLGlob("web/*")
 	r.GET("/login", func(c *gin.Context) {
@@ -59,6 +65,7 @@ func main() {
 
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
+	category.RegisterRoutes(r, categoryHandler)
 	r.Run(":8003")
 	
 }

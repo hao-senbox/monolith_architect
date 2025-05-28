@@ -140,7 +140,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 		Bio:      &req.Bio,
 	}
 
-	return s.repository.Update(ctx, profile)
+	return s.repository.UpdateByID(ctx, profile)
 
 }
 

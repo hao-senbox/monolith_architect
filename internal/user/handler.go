@@ -8,18 +8,18 @@ import (
 )
 
 type UserHandler struct {
-	service UserService
+	UserService UserService
 }
 
-func NewUserHandler(service UserService) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(UserService UserService) *UserHandler {
+	return &UserHandler{UserService: UserService}
 }
 
 func (h *UserHandler) RefreshToken(c *gin.Context) {
 
 	refreshToken := c.Query("refresh_token")
 
-	newToken, newRefreshToken, err := h.service.RefreshToken(refreshToken)
+	newToken, newRefreshToken, err := h.UserService.RefreshToken(refreshToken)
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
@@ -33,7 +33,7 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
 
-	users, err := h.service.GetAllUsers(c)
+	users, err := h.UserService.GetAllUsers(c)
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
@@ -46,7 +46,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 
 	userID := c.Param("user_id")
 
-	user, err := h.service.GetUserByID(c, userID)
+	user, err := h.UserService.GetUserByID(c, userID)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
@@ -65,7 +65,7 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 	
-	user, err := h.service.RegisterUser(c, &req)
+	user, err := h.UserService.RegisterUser(c, &req)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
@@ -85,7 +85,7 @@ func (h *UserHandler) LoginUser(c *gin.Context) {
 		return
 	}
 	
-	user, err := h.service.LoginUser(c, req.Email, req.Password)
+	user, err := h.UserService.LoginUser(c, req.Email, req.Password)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
@@ -99,7 +99,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	
 	userID := c.Param("user_id")
 
-	err := h.service.DeleteUser(c, userID)
+	err := h.UserService.DeleteUser(c, userID)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
