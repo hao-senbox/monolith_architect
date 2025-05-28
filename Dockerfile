@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/
 # Tạo thư mục ứng dụng
 WORKDIR /app
 
+
 # Copy binary từ stage builder
 COPY --from=builder /app/main .
 
