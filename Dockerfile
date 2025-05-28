@@ -25,9 +25,6 @@ WORKDIR /app
 # Copy binary từ stage builder
 COPY --from=builder /app/main .
 
-# Copy file .env (tùy chọn, có thể dùng Docker secrets hoặc ENV flags sau)
-COPY .env .env
-
 # Expose port của ứng dụng
 EXPOSE 8003
 
