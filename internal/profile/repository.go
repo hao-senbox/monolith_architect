@@ -10,8 +10,8 @@ import (
 
 type ProfileRepository interface {
 	Create(ctx context.Context, profile *Profile) error
-	UpdateByID(ctx context.Context, profile *Profile) error
 	FindByUserID(ctx context.Context, userID primitive.ObjectID) (*Profile, error)
+	UpdateByID(ctx context.Context, profile *Profile) error
 	DeleteByID(ctx context.Context, userID primitive.ObjectID) error
 }
 

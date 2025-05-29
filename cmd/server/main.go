@@ -19,7 +19,6 @@ import (
 )
 
 func main() {
-	// Load .env file only if it exists (for local development)
 	if _, err := os.Stat(".env"); err == nil {
 		if err := godotenv.Load(); err != nil {
 			log.Printf("Warning: Error loading .env file: %v", err)
@@ -73,10 +72,9 @@ func main() {
 	profile.RegisterRoutes(r, profileHandler)
 	category.RegisterRoutes(r, categoryHandler)
 
-	// Get port from environment variable (Railway sets this automatically)
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8003" // fallback port
+		port = "8003" 
 	}
 
 	log.Printf("Server starting on port %s", port)

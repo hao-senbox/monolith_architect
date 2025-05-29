@@ -9,8 +9,8 @@ import (
 )
 
 type CategoryRepository interface {
-	Create(ctx context.Context, category *Category) error
 	FindAll(ctx context.Context) ([]*Category, error)
+	Create(ctx context.Context, category *Category) error
 	FindByID(ctx context.Context, categoryID primitive.ObjectID) (*Category, error)
 	UpdateByID(ctx context.Context, category *Category, categoryID primitive.ObjectID) error
 	DeleteByID(ctx context.Context, categoryID primitive.ObjectID) error
@@ -24,20 +24,6 @@ func NewCategoryRepository(collection *mongo.Collection) CategoryRepository {
 	return &categoryRepository{
 		collection: collection,
 	}
-}
-
-func (r *categoryRepository) FindByID(ctx context.Context, categoryID primitive.ObjectID) (*Category, error) {
-	
-	filter := bson.M{"_id": categoryID}
-
-	var category Category
-
-	err := r.collection.FindOne(ctx, filter).Decode(&category)
-	if err != nil {
-		return nil, err
-	}
-
-	return &category, nil
 }
 
 func (r *categoryRepository) FindAll(ctx context.Context) ([]*Category, error) {
@@ -67,6 +53,20 @@ func (r *categoryRepository) Create(ctx context.Context, category *Category) err
 		return err
 	}
 	return nil
+}
+
+func (r *categoryRepository) FindByID(ctx context.Context, categoryID primitive.ObjectID) (*Category, error) {
+	
+	filter := bson.M{"_id": categoryID}
+
+	var category Category
+
+	err := r.collection.FindOne(ctx, filter).Decode(&category)
+	if err != nil {
+		return nil, err
+	}
+
+	return &category, nil
 }
 
 func (r *categoryRepository) UpdateByID(ctx context.Context, category *Category, categoryID primitive.ObjectID) error {
