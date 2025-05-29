@@ -6,6 +6,7 @@ import (
 	"modular_monolith/config"
 	"modular_monolith/internal/category"
 	"modular_monolith/internal/cloudinaryutil"
+	"modular_monolith/internal/product"
 	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
 	"os"
@@ -62,6 +63,11 @@ func main() {
 	categoryService := category.NewCategoryService(categoryRepository)
 	categoryHandler := category.NewCategoryHandler(categoryService)
 
+	products := mongoClient.Database(cfg.MongoDB).Collection("products")
+	productsRepository := product.NewProductRepository(products)
+	productsService := product.NewProductService(productsRepository, cld)
+	productsHandler := product.NewProductHandler(productsService)
+
 	r := gin.Default()
 	// r.LoadHTMLGlob("web/*")
 	// r.GET("/login", func(c *gin.Context) {
@@ -71,7 +77,8 @@ func main() {
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
 	category.RegisterRoutes(r, categoryHandler)
-
+	product.RegisterRoutes(r, productsHandler)
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8003" 

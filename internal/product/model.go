@@ -1,6 +1,7 @@
 package product
 
 import (
+	"mime/multipart"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,20 +20,21 @@ type Product struct {
 }
 
 type ProductVariant struct {
-	SKU       string     `json:"sku" bson:"sku"`
-	Color     string     `json:"color" bson:"color"`
-	Size      string     `json:"size" bson:"size"`
-	Stock     int        `json:"stock" bson:"stock"`
-	Price     float64    `json:"price" bson:"price"`
-	Discount  float64    `json:"discount" bson:"discount"`
-	Currency  string     `json:"currency" bson:"currency"`
-	MainImage string     `json:"main_image" bson:"main_image"`
-	SubImage  []SubImage `json:"sub_image" bson:"sub_image"`
+	SKU               string     `json:"sku" bson:"sku"`
+	Color             string     `json:"color" bson:"color"`
+	Size              string     `json:"size" bson:"size"`
+	Stock             int        `json:"stock" bson:"stock"`
+	Price             float64    `json:"price" bson:"price"`
+	Discount          float64    `json:"discount" bson:"discount"`
+	Currency          string     `json:"currency" bson:"currency"`
+	MainImagePublicID string     `json:"main_image_public_id" bson:"main_image_public_id"`
+	MainImage         string     `json:"main_image" bson:"main_image"`
+	SubImages          []SubImage `json:"sub_image" bson:"sub_image"`
 }
 
 type SubImage struct {
-	Url  string `json:"url" bson:"url"`
-	Sort int    `json:"sort" bson:"sort"`
+	Url              string `json:"url" bson:"url"`
+	SubImagePublicID string `json:"sub_image_public_id" bson:"sub_image_public_id"`
 }
 
 type ProductResponse struct {
@@ -48,10 +50,24 @@ type ProductResponse struct {
 }
 
 type CreateProductRequest struct {
-	CategoryID         primitive.ObjectID `json:"category_id" bson:"category_id"`
-	ProductName        string             `json:"product_name" bson:"product_name"`
-	ProductDescription string             `json:"product_description" bson:"product_description"`
-	Variants           []ProductVariant   `json:"variants" bson:"variants"`
+    ProductName        string                 `json:"product_name"` 
+    ProductDescription string                 `json:"product_description"`
+    CategoryID         string                 `json:"category_id"`
+	Variants           []CreateProductVariant `json:"variants"`
+}
+
+type VariantFiles struct {
+	MainImage *multipart.FileHeader
+	SubImages []*multipart.FileHeader
+}
+type CreateProductVariant struct {
+    SKU       string                  `json:"sku"`
+    Size      string                  `json:"size"`
+    Color     string                  `json:"color"`
+    Price     float64                 `json:"price"`
+    Discount  float64                 `json:"discount"`
+    Currency  string                  `json:"currency"`
+    Stock     int                     `json:"stock"`
 }
 
 type UpdateProductRequest struct {

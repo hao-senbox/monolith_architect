@@ -9,8 +9,8 @@ import (
 )
 
 type CategoryRepository interface {
-	FindAll(ctx context.Context) ([]*Category, error)
 	Create(ctx context.Context, category *Category) error
+	FindAll(ctx context.Context) ([]*Category, error)
 	FindByID(ctx context.Context, categoryID primitive.ObjectID) (*Category, error)
 	UpdateByID(ctx context.Context, category *Category, categoryID primitive.ObjectID) error
 	DeleteByID(ctx context.Context, categoryID primitive.ObjectID) error

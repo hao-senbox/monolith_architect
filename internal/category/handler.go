@@ -17,18 +17,6 @@ func NewCategoryHandler(categoryService CategoryService) *CategoryHandler {
 	}
 }
 
-func (h *CategoryHandler) GetCategories(c *gin.Context) {
-	
-	categories, err := h.categoryService.GetCategories(c)
-	if err != nil {
-		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
-		return
-	}
-
-	helper.SendSuccess(c, http.StatusOK, "success", categories)
-
-}
-
 func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	
 	var req CreateCategoryRequest
@@ -46,6 +34,18 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusCreated, "success", nil)
+}
+
+func (h *CategoryHandler) GetCategories(c *gin.Context) {
+	
+	categories, err := h.categoryService.GetCategories(c)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", categories)
+
 }
 
 func (h *CategoryHandler) GetCategory(c *gin.Context) {

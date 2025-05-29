@@ -7,8 +7,8 @@ import (
 )
 
 type CategoryService interface {
-	GetCategories(ctx context.Context) ([]*Category, error)
 	CreateCategory(ctx context.Context, req *CreateCategoryRequest) error
+	GetCategories(ctx context.Context) ([]*Category, error)
 	GetCategory(ctx context.Context, categoryID string) (*Category, error)
 	UpdateCategory(ctx context.Context, req *UpdateCategoryRequest, categoryID string) error
 	DeleteCategory(ctx context.Context, categoryID string) error
@@ -22,10 +22,6 @@ func NewCategoryService(categoryRepository CategoryRepository) CategoryService {
 	return &categoryService{
 		categoryRepository: categoryRepository,
 	}
-}
-
-func (s *categoryService) GetCategories(ctx context.Context) ([]*Category, error) {
-	return s.categoryRepository.FindAll(ctx)
 }
 
 func (s *categoryService) CreateCategory(ctx context.Context, req *CreateCategoryRequest) error {
@@ -53,6 +49,10 @@ func (s *categoryService) CreateCategory(ctx context.Context, req *CreateCategor
 
 	return s.categoryRepository.Create(ctx, &category)
 
+}
+
+func (s *categoryService) GetCategories(ctx context.Context) ([]*Category, error) {
+	return s.categoryRepository.FindAll(ctx)
 }
 
 func (s *categoryService) GetCategory(ctx context.Context, categoryID string) (*Category, error) {
