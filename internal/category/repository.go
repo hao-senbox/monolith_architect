@@ -12,6 +12,8 @@ type CategoryRepository interface {
 	Create(ctx context.Context, category *Category) error
 	FindAll(ctx context.Context) ([]*Category, error)
 	FindByID(ctx context.Context, categoryID primitive.ObjectID) (*Category, error)
+	UpdateByID(ctx context.Context, category *Category, categoryID primitive.ObjectID) error
+	DeleteByID(ctx context.Context, categoryID primitive.ObjectID) error
 }
 
 type categoryRepository struct {
@@ -65,4 +67,28 @@ func (r *categoryRepository) Create(ctx context.Context, category *Category) err
 		return err
 	}
 	return nil
+}
+
+func (r *categoryRepository) UpdateByID(ctx context.Context, category *Category, categoryID primitive.ObjectID) error {
+
+	filter := bson.M{"_id": categoryID}
+	update := bson.M{"$set": category}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (r *categoryRepository) DeleteByID(ctx context.Context, categoryID primitive.ObjectID) error {
+
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": categoryID})
+	if err != nil {
+		return err
+	}
+
+	return nil
+	
 }

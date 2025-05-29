@@ -60,3 +60,37 @@ func (h *CategoryHandler) GetCategories(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", categories)
 
 }
+
+func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
+
+	categoryID := c.Param("id")
+	var req UpdateCategoryRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.categoryService.UpdateCategory(c, &req, categoryID)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+}
+
+func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
+	
+	categoryID := c.Param("id")
+
+	err := h.categoryService.DeleteCategory(c, categoryID)
+
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+	
+}
