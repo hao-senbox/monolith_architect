@@ -4,6 +4,7 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 )
 
 func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
@@ -12,6 +13,11 @@ func SaveUploadedFile(file *multipart.FileHeader, dst string) error {
 		return err
 	}
 	defer srcFile.Close()
+
+	dir := filepath.Dir(dst)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
 
 	outFile, err := os.Create(dst)
 	if err != nil {

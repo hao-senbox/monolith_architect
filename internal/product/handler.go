@@ -2,6 +2,7 @@ package product
 
 import (
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 
@@ -81,17 +82,23 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 			files.MainImage = mainImage
 		}
 
-		if subImages := c.Request.MultipartForm.File[fmt.Sprintf("variants[%d][sub_images]", i)]; len(subImages) > 0 {
-			files.SubImages = subImages
+		var subImages []*multipart.FileHeader
+
+		if subImagesArray  := c.Request.MultipartForm.File[fmt.Sprintf("variants[%d][sub_image]", i)]; len(subImagesArray) > 0 {
+			subImages = subImagesArray
 		}
 
+		files.SubImages = subImages
 		variantFiles = append(variantFiles, files)
 	}
 
+	req.Variants = variants
+	
 	if err := h.ProductService.CreateProduct(c.Request.Context(), &req, variantFiles); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Product created successfully"})
 }	

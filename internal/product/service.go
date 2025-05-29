@@ -42,13 +42,13 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		return fmt.Errorf("invalid category id: %v", err)
 	}
 
-	// if len(req.Variants) == 0 {
-	// 	return fmt.Errorf("variants are required")
-	// }
+	if len(req.Variants) == 0 {
+		return fmt.Errorf("variants are required")
+	}
 
-	// if len(req.Variants) != len(variantFiles) {
-	// 	return fmt.Errorf("variant count mismatch with files")
-	// }
+	if len(req.Variants) != len(variantFiles) {
+		return fmt.Errorf("variant count mismatch with files")
+	}
 
 	var variants []ProductVariant
 
@@ -106,8 +106,8 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 			if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
 				return fmt.Errorf("failed to save avatar: %w", err)
 			}
-
 			defer os.Remove(tempPath)
+			
 			subImageURL, subImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
 			if err != nil {
 				return fmt.Errorf("failed to upload sub image %d for variant %d: %w", j, i, err)
@@ -131,6 +131,8 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 	}
+
+	fmt.Printf("Product: %+v\n", product)
 
 	return s.repository.Create(ctx, product)
 }
