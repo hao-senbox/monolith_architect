@@ -21,12 +21,12 @@ func NewProductHandler(productService ProductService) *ProductHandler {
 
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
-	if err := c.Request.ParseMultipartForm(32 << 20); err != nil { 
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
 		return
 	}
 
-	var req CreateProductRequest	
+	var req CreateProductRequest
 	req.ProductName = c.PostForm("product_name")
 	req.ProductDescription = c.PostForm("product_description")
 	req.CategoryID = c.PostForm("category_id")
@@ -55,7 +55,6 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 			Currency: c.PostForm(fmt.Sprintf("variants[%d][currency]", i)),
 		}
 
-
 		if priceStr := c.PostForm(fmt.Sprintf("variants[%d][price]", i)); priceStr != "" {
 			if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
 				variant.Price = price
@@ -77,7 +76,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		variants = append(variants, variant)
 
 		var files VariantFiles
-		
+
 		if mainImage, err := c.FormFile(fmt.Sprintf("variants[%d][main_image]", i)); err == nil {
 			files.MainImage = mainImage
 		}
@@ -101,4 +100,4 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Product created successfully"})
-}	
+}
