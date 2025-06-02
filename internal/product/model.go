@@ -71,8 +71,8 @@ type CreateProductVariant struct {
 }
 
 type UpdateProductRequest struct {
-	CategoryID         primitive.ObjectID `json:"category_id" bson:"category_id"`
+	CategoryID         string `json:"category_id" bson:"category_id"`
 	ProductName        string             `json:"product_name" bson:"product_name"`
 	ProductDescription string             `json:"product_description" bson:"product_description"`
-	Variants           []ProductVariant   `json:"variants" bson:"variants"`
+	Variants           []CreateProductVariant   `json:"variants" bson:"variants"`
 }

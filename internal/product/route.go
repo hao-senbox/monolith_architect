@@ -11,9 +11,9 @@ func RegisterRoutes (r *gin.Engine, handler *ProductHandler) {
 	{
 		productGroup.Use(middleware.JWTAuthMiddleware())
 		productGroup.POST("/", handler.CreateProduct)
-		// productGroup.GET("/", handler.GetAllProducts)
-		// productGroup.GET("/:product_id", handler.GetProductByID)
-		// productGroup.PUT("/:product_id", handler.UpdateProduct)
+		productGroup.GET("/", handler.GetAllProducts)
+		productGroup.GET("/:id", handler.GetProductByID)
+		// productGroup.PUT("/:id", handler.UpdateProduct)
 		// productGroup.DELETE("/:product_id", handler.DeleteProduct)
 	}
 }

@@ -118,15 +118,26 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 		return fmt.Errorf("address is required")
 	}
 
-	tempPath := "/tmp/" + file.Filename
-	if err := fileutil.SaveUploadedFile(file, tempPath); err != nil {
-		return fmt.Errorf("failed to save avatar: %w", err)
-	}
-	defer os.Remove(tempPath)
+	var avatarURL string
 
-	avatarURL, err := s.cloudUploader.EditImage(ctx, tempPath, existingUser.PublicID)
-	if err != nil {
-		return fmt.Errorf("failed to upload to Cloudinary: %w", err)
+	if file != nil {
+		tempPath := "/tmp/" + file.Filename
+		if err := fileutil.SaveUploadedFile(file, tempPath); err != nil {
+			return fmt.Errorf("failed to save avatar: %w", err)
+		}
+		defer os.Remove(tempPath)
+
+		err = s.cloudUploader.DeleteImage(ctx, existingUser.PublicID)
+		if err != nil {
+			return fmt.Errorf("failed to upload to Cloudinary: %w", err)
+		}
+
+		avatarURL, _, err = s.cloudUploader.UploadImage(ctx, tempPath, "profiles")
+		if err != nil {
+			return fmt.Errorf("failed to upload to Cloudinary: %w", err)
+		}
+	} else {
+		avatarURL = existingUser.Avatar
 	}
 
 	profile := &Profile{
