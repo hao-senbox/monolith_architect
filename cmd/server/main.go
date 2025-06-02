@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -69,19 +70,23 @@ func main() {
 	productsHandler := product.NewProductHandler(productsService)
 
 	r := gin.Default()
-	// r.LoadHTMLGlob("web/*")
-	// r.GET("/login", func(c *gin.Context) {
-	// 	c.HTML(http.StatusOK, "login.html", gin.H{})
-	// })
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://127.0.0.1:5500"}, // hoặc "*" cho tất cả origin
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
 	category.RegisterRoutes(r, categoryHandler)
 	product.RegisterRoutes(r, productsHandler)
-	
+
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8003" 
+		port = "8003"
 	}
 
 	log.Printf("Server starting on port %s", port)
