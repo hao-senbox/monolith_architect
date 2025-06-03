@@ -31,6 +31,7 @@ func NewProductService(repository ProductRepository, uploader *cloudinaryutil.Cl
 	}
 }
 
+
 func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRequest, variantFiles []VariantFiles) error {
 
 	if req.ProductName == "" {
