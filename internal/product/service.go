@@ -16,6 +16,7 @@ type ProductService interface {
 	GetAllProducts(ctx context.Context) ([]*Product, error)
 	GetProductByID(ctx context.Context, id string) (*Product, error)
 	UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, variantFiles []VariantFiles) error
+	DeleteProduct(ctx context.Context, id string) error
 }
 
 type productService struct {
@@ -58,34 +59,40 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 
 	for i, v := range req.Variants {
 
-		if v.Size == "" {
-			return fmt.Errorf("size is required for variant %d", i)
-		}
-
 		if v.Color == "" {
 			return fmt.Errorf("color is required for variant %d", i)
 		}
 
-		if v.Price <= 0 {
-			return fmt.Errorf("price is required for variant %d", i)
-		}
+		var sizes []SizeOptions
 
-		if v.Stock < 0 {
-			return fmt.Errorf("stock cannot be negative for variant %d", i)
-		}
+		for _, s := range v.Sizes {
 
-		if v.Currency == "" {
-			return fmt.Errorf("currency is required for variant %d", i)
+			if s.Size == "" || s.Price <= 0 {
+				return fmt.Errorf("invalid size option for variant %d", i)
+			}
+			
+			if s.Stock < 0 {
+				return fmt.Errorf("invalid stock for size option %d", i)
+			}
+			
+			if s.Currency == "" {
+				return fmt.Errorf("invalid currency for size option %d", i)
+			}
+
+			sizes = append(sizes, SizeOptions{
+				SKU:      s.SKU,
+				Size:     s.Size,
+				Stock:    s.Stock,
+				Price:    s.Price,
+				Discount: s.Discount,
+				Currency: s.Currency,
+			})
+
 		}
 
 		variant := ProductVariant{
-			SKU:      v.SKU,
 			Color:    v.Color,
-			Size:     v.Size,
-			Stock:    v.Stock,
-			Price:    v.Price,
-			Discount: v.Discount,
-			Currency: v.Currency,
+			Sizes:    sizes,
 		}
 
 		if variantFiles[i].MainImage != nil {
@@ -183,18 +190,52 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 	var variants []ProductVariant
 
 	for i, v := range req.Variants {
-		if v.Size == "" || v.Color == "" || v.Currency == "" || v.Price <= 0 || v.Stock < 0 {
-			return fmt.Errorf("invalid data for variant %d", i)
+		
+		if v.Color == "" {
+			return fmt.Errorf("invalid color for variant %d", i)
+		}
+
+		var sizes []SizeOptions
+
+		for _, s := range v.Sizes {
+			
+			if s.Currency == "" {
+				return fmt.Errorf("invalid currency for size option %d", i)
+			}
+
+			if s.Discount < 0 || s.Discount > 100 {
+				return fmt.Errorf("invalid discount for size option %d", i)
+			}
+
+			if s.Price < 0 {
+				return fmt.Errorf("invalid price for size option %d", i)
+			}
+
+			if s.SKU == "" {
+				return fmt.Errorf("invalid sku for size option %d", i)
+			}
+
+			if s.Stock < 0 {
+				return fmt.Errorf("invalid stock for size option %d", i)
+			}
+
+			if s.Size == "" {
+				return fmt.Errorf("invalid size for size option %d", i)
+			}
+
+			sizes = append(sizes, SizeOptions{
+				Currency: s.Currency,
+				Discount: s.Discount,
+				Price:    s.Price,
+				SKU:      s.SKU,
+				Stock:    s.Stock,
+				Size:     s.Size,
+			})
 		}
 
 		variant := ProductVariant{
-			SKU:      v.SKU,
-			Color:    v.Color,
-			Size:     v.Size,
-			Stock:    v.Stock,
-			Price:    v.Price,
-			Discount: v.Discount,
-			Currency: v.Currency,
+			Color:     v.Color,
+			Sizes:     sizes,
 		}
 
 		if variantFiles[i].MainImage != nil {
@@ -258,4 +299,34 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 
 	return s.repository.UpdateByID(ctx, objectID, productUpdate)
 
+}
+
+func (s *productService) DeleteProduct(ctx context.Context, id string) error {
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid product id: %v", err)
+	}
+
+	product, err := s.repository.FindByID(ctx, objectID)
+	if err != nil || product == nil {
+		return fmt.Errorf("product not found")
+	}
+
+	for _, v := range product.Variants {
+
+		err := s.cloudUploader.DeleteImage(ctx, v.MainImagePublicID)
+		if err != nil {
+			return fmt.Errorf("failed to delete main image: %w", err)
+		}
+
+		for _, sub := range v.SubImages {
+			err := s.cloudUploader.DeleteImage(ctx, sub.SubImagePublicID)
+			if err != nil {
+				return fmt.Errorf("failed to delete sub image: %w", err)
+			}
+		}
+	}
+
+	return s.repository.DeleteByID(ctx, objectID)
 }

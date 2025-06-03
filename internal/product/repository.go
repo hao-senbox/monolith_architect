@@ -12,7 +12,8 @@ type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
 	FindAll(ctx context.Context) ([]*Product, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Product, error)
-	UpdateByID(ctx context.Context, id primitive.ObjectID, product *Product) error	
+	UpdateByID(ctx context.Context, id primitive.ObjectID, product *Product) error
+	DeleteByID(ctx context.Context, id primitive.ObjectID) error	
 }
 
 type productRepository struct {
@@ -72,6 +73,19 @@ func (r *productRepository) UpdateByID(ctx context.Context, id primitive.ObjectI
 	update := bson.M{"$set": product}
 
 	_, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	
+	return nil
+	
+}
+
+func (r *productRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
+
+	filter := bson.M{"_id": id}
+
+	_, err := r.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return err
 	}

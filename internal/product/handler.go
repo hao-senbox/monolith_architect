@@ -6,6 +6,7 @@ import (
 	"modular_monolith/helper"
 	"net/http"
 	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,34 +45,53 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	var variants []CreateProductVariant
+	sizeOptionsStr := c.PostForm("size_options")
+	sizeCount, err := strconv.Atoi(sizeOptionsStr)
+	if err != nil || sizeCount == 0 {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	var variants []CreateProductVariantRequest
 	var variantFiles []VariantFiles
 
 	for i := 0; i < variantCount; i++ {
 
-		variant := CreateProductVariant{
-			SKU:      c.PostForm(fmt.Sprintf("variants[%d][sku]", i)),
-			Size:     c.PostForm(fmt.Sprintf("variants[%d][size]", i)),
+		var sizes []CreateSizeOptionsRequest
+
+		for j := 0; j < sizeCount; j++ {
+
+			var size CreateSizeOptionsRequest
+
+			size.SKU = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][sku]", i, j))
+			size.Size = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][size]", i, j))
+			size.Currency = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][currency]", i, j))
+
+			if priceStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][price]", i, j)); priceStr != "" {
+				if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+					size.Price = price
+				}
+			}
+
+			if discountStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][discount]", i, j)); discountStr != "" {
+				if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
+					size.Discount = discount
+				}
+			}
+
+			if stockStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][stock]", i, j)); stockStr != "" {
+				if stock, err := strconv.Atoi(stockStr); err == nil {
+					size.Stock = stock
+				}
+			}
+
+			sizes = append(sizes, size)
+
+		}
+
+		variant := CreateProductVariantRequest{
 			Color:    c.PostForm(fmt.Sprintf("variants[%d][color]", i)),
-			Currency: c.PostForm(fmt.Sprintf("variants[%d][currency]", i)),
-		}
-
-		if priceStr := c.PostForm(fmt.Sprintf("variants[%d][price]", i)); priceStr != "" {
-			if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-				variant.Price = price
-			}
-		}
-
-		if discountStr := c.PostForm(fmt.Sprintf("variants[%d][discount]", i)); discountStr != "" {
-			if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
-				variant.Discount = discount
-			}
-		}
-
-		if stockStr := c.PostForm(fmt.Sprintf("variants[%d][stock]", i)); stockStr != "" {
-			if stock, err := strconv.Atoi(stockStr); err == nil {
-				variant.Stock = stock
-			}
+			Sizes:    sizes,
 		}
 
 		variants = append(variants, variant)
@@ -154,35 +174,46 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
 	}
-	var variants []CreateProductVariant
+	var variants []CreateProductVariantRequest
 	var variantFiles []VariantFiles
 
 	for i := 0; i < len(product.Variants); i++ {
 
-		variant := CreateProductVariant{
-			SKU:      c.PostForm(fmt.Sprintf("variants[%d][sku]", i)),
-			Size:     c.PostForm(fmt.Sprintf("variants[%d][size]", i)),
+		var sizes []CreateSizeOptionsRequest
+
+		for j := 0; j < len(product.Variants[i].Sizes); j++ {
+
+			var size CreateSizeOptionsRequest
+			size.Size = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][size]", i, j))
+			size.SKU = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][sku]", i, j))
+			size.Currency = c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][currency]", i, j))
+
+			if priceStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][price]", i, j)); priceStr != "" {
+				if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+					size.Price = price
+				}
+			}
+
+			if discountStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][discount]", i, j)); discountStr != "" {
+				if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
+					size.Discount = discount
+				}
+			}
+
+			if stockStr := c.PostForm(fmt.Sprintf("variants[%d][sizes][%d][stock]", i, j)); stockStr != "" {
+				if stock, err := strconv.Atoi(stockStr); err == nil {
+					size.Stock = stock
+				}
+			}
+
+			sizes = append(sizes, size)
+		}
+
+		variant := CreateProductVariantRequest{
 			Color:    c.PostForm(fmt.Sprintf("variants[%d][color]", i)),
-			Currency: c.PostForm(fmt.Sprintf("variants[%d][currency]", i)),
+			Sizes:    sizes,
 		}
 
-		if priceStr := c.PostForm(fmt.Sprintf("variants[%d][price]", i)); priceStr != "" {
-			if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-				variant.Price = price
-			}
-		}
-
-		if discountStr := c.PostForm(fmt.Sprintf("variants[%d][discount]", i)); discountStr != "" {
-			if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
-				variant.Discount = discount
-			}
-		}
-
-		if stockStr := c.PostForm(fmt.Sprintf("variants[%d][stock]", i)); stockStr != "" {
-			if stock, err := strconv.Atoi(stockStr); err == nil {
-				variant.Stock = stock
-			}
-		}
 
 		variants = append(variants, variant)
 
@@ -212,4 +243,17 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 
+}
+
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+
+	id := c.Param("id")
+
+	err := h.ProductService.DeleteProduct(c, id)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
 }
