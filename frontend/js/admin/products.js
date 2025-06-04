@@ -1,7 +1,7 @@
 $(document).ready(function() {
     const BASE_URL = 'https://monolith-architect.onrender.com';
     const API_ENDPOINTS = {
-        products: `${BASE_URL}/api/v1/product/`,
+        products: `${BASE_URL}/api/v1/product`,
         product: (id) => `${BASE_URL}/api/v1/product/${id}`,
         categories: `${BASE_URL}/api/v1/category`
     };
