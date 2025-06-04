@@ -49,6 +49,16 @@ func main() {
 		}
 	}()
 
+	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://127.0.0.1:5500", "https://monolith-architect.onrender.com"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
 	profileRepository := profile.NewProfileRepository(profilesCollection)
 	profileService := profile.NewProfileService(profileRepository, cld)
@@ -68,16 +78,6 @@ func main() {
 	productsRepository := product.NewProductRepository(products)
 	productsService := product.NewProductService(productsRepository, cld)
 	productsHandler := product.NewProductHandler(productsService)
-
-	r := gin.Default()
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://127.0.0.1:5500", "https://monolith-architect.onrender.com"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
 
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
