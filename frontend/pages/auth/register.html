@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Football Shoes Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="/frontend/css/pages/auth/login.css">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Header -->
+            <div class="text-center">
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                    Create Account
+                </h2>
+                <p class="mt-2 text-sm text-gray-600">
+                    Join us for the best shopping experience
+                </p>
+            </div>
+
+            <!-- Registration Form -->
+            <form id="registerForm" class="mt-8 space-y-6">
+                <!-- Name Fields -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                        <div class="mt-1 relative">
+                            <input id="firstName" name="firstName" type="text" required
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="First name">
+                        </div>
+                        <div id="firstNameError" class="text-red-500 text-sm hidden"></div>
+                    </div>
+                    <div>
+                        <label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                        <div class="mt-1 relative">
+                            <input id="lastName" name="lastName" type="text" required
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Last name">
+                        </div>
+                        <div id="lastNameError" class="text-red-500 text-sm hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Email Field -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+                    <div class="mt-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input id="email" name="email" type="email" required
+                            class="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="you@example.com">
+                    </div>
+                    <div id="emailError" class="text-red-500 text-sm hidden"></div>
+                </div>
+
+                <!-- Phone Field -->
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <div class="mt-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-phone text-gray-400"></i>
+                        </div>
+                        <input id="phone" name="phone" type="tel" required
+                            class="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="+1234567890">
+                    </div>
+                    <div id="phoneError" class="text-red-500 text-sm hidden"></div>
+                </div>
+
+                <!-- Password Fields -->
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <div class="mt-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input id="password" name="password" type="password" required
+                            class="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="••••••••">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i class="fas fa-eye text-gray-400 cursor-pointer toggle-password"></i>
+                        </div>
+                    </div>
+                    <div id="passwordError" class="text-red-500 text-sm hidden"></div>
+                </div>
+
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <div class="mt-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input id="confirmPassword" name="confirmPassword" type="password" required
+                            class="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="••••••••">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                            <i class="fas fa-eye text-gray-400 cursor-pointer toggle-password"></i>
+                        </div>
+                    </div>
+                    <div id="confirmPasswordError" class="text-red-500 text-sm hidden"></div>
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="flex items-center">
+                    <input id="terms" name="terms" type="checkbox" required
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="terms" class="ml-2 block text-sm text-gray-900">
+                        I agree to the <a href="#" class="text-indigo-600 hover:text-indigo-500">Terms and Conditions</a>
+                    </label>
+                </div>
+                <div id="termsError" class="text-red-500 text-sm hidden"></div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i class="fas fa-user-plus text-indigo-500 group-hover:text-indigo-400"></i>
+                        </span>
+                        Create Account
+                    </button>
+                </div>
+
+                <!-- Login Link -->
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">
+                        Already have an account?
+                        <a href="/frontend/pages/auth/login.html" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            Sign in
+                        </a>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <script src="/frontend/js/pages/auth/auth.js"></script>
+</body>
+</html> 

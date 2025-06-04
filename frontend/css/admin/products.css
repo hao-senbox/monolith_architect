@@ -1,0 +1,162 @@
+/* Product Table Styles */
+.product-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.product-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.product-category {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.product-price {
+    font-weight: 500;
+    color: #059669;
+}
+
+.product-stock {
+    font-weight: 500;
+}
+
+.product-stock.in-stock {
+    color: #059669;
+}
+
+.product-stock.low-stock {
+    color: #d97706;
+}
+
+.product-stock.out-of-stock {
+    color: #dc2626;
+}
+
+/* Action Buttons */
+.action-btn {
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.action-btn.edit {
+    color: #3b82f6;
+}
+
+.action-btn.delete {
+    color: #ef4444;
+}
+
+/* Modal Styles */
+.modal-content {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+/* Variant Styles */
+.variant-item {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.variant-item:hover {
+    background-color: #f3f4f6;
+}
+
+/* Size Styles */
+.size-item {
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+}
+
+.size-item:hover {
+    background-color: #f9fafb;
+}
+
+/* Toast Styles */
+.toast {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast-success {
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+}
+
+.toast-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.toast-info {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #9ca3af;
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 2rem;
+    color: #dc2626;
+}
+
+.error-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ef4444;
+} 
