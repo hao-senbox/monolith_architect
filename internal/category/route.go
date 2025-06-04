@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes (route *gin.Engine, categoryHandler *CategoryHandler) {
+func RegisterRoutes(route *gin.Engine, categoryHandler *CategoryHandler) {
 	categoriesGroup := route.Group("/api/v1/category")
 	{
 		categoriesGroup.Use(middleware.JWTAuthMiddleware())
