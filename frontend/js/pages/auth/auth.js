@@ -1,15 +1,19 @@
 $(document).ready(function() {
     const BASE_URL = 'https://monolith-architect.onrender.com';
+    // const BASE_URL = 'http://localhost:8003';
     const API_ENDPOINTS = {
         login: `${BASE_URL}/api/v1/user/login`,
         register: `${BASE_URL}/api/v1/user/register`,
-        refreshToken: `${BASE_URL}/api/v1/user/refresh`
+        refreshToken: `${BASE_URL}/api/v1/user/refresh`,
+        logout: `${BASE_URL}/api/v1/user/logout`
     };
 
     // Token Management
     function getToken() {
         return localStorage.getItem('token');
     }
+
+    console.log('Token:', getToken());
 
     function getRefreshToken() {
         return localStorage.getItem('refreshToken');
@@ -23,6 +27,56 @@ $(document).ready(function() {
     function clearTokens() {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+    }
+
+    function logout() {
+
+        const token = getToken();
+        
+        console.log('Token:', token);
+        
+        if (!token) {
+            
+            clearTokens();
+            
+            showToast('Logged out', 'info');
+
+            setTimeout(() => {
+                window.location.href = '/frontend/pages/auth/login.html';
+            }, 1500);
+
+            return;
+        }
+        
+        showLoading();
+        
+        $.ajax({
+            url: API_ENDPOINTS.logout,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            success: function(response) {
+                hideLoading();
+                clearTokens();
+                showToast('Logout successful!', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/frontend/pages/auth/login.html';
+                }, 1500);
+            },
+            error: function(xhr) {
+                hideLoading();
+                console.log('Logout error:', xhr.responseText);
+
+                clearTokens();
+                showToast('Logged out', 'info');
+                
+                setTimeout(() => {
+                    window.location.href = '/frontend/pages/auth/login.html';
+                }, 1500);
+            }
+        });
     }
 
     // Refresh Token Function
@@ -321,4 +375,10 @@ $(document).ready(function() {
             hideError('termsError');
         });
     }
+
+    $(document).on('click', '#logoutBtn', function(e) {
+        e.preventDefault();
+        logout();
+    });
+
 }); 

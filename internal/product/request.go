@@ -6,16 +6,13 @@ type CreateProductRequest struct {
 	ProductName        string                        `json:"product_name"`
 	ProductDescription string                        `json:"product_description"`
 	CategoryID         string                        `json:"category_id"`
-	Variants           []CreateProductVariantRequest `json:"variants"`
+	Color              string                        `json:"color"`
+	Sizes              []CreateSizeOptionsRequest `json:"sizes"`
 }
 
-type VariantFiles struct {
-	MainImage *multipart.FileHeader
-	SubImages []*multipart.FileHeader
-}
-type CreateProductVariantRequest struct {
-	Color string `json:"color"`
-	Sizes []CreateSizeOptionsRequest
+type ProductFiles struct {
+    MainImage *multipart.FileHeader   `json:"main_image"`
+    SubImages []*multipart.FileHeader `json:"sub_images"`
 }
 
 type CreateSizeOptionsRequest struct {
@@ -31,5 +28,6 @@ type UpdateProductRequest struct {
 	CategoryID         string                        `json:"category_id" bson:"category_id"`
 	ProductName        string                        `json:"product_name" bson:"product_name"`
 	ProductDescription string                        `json:"product_description" bson:"product_description"`
-	Variants           []CreateProductVariantRequest `json:"variants" bson:"variants"`
+	Color              string                        `json:"color" bson:"color"`
+	Sizes           []CreateSizeOptionsRequest `json:"sizes" bson:"sizes"`
 }

@@ -12,10 +12,10 @@ import (
 )
 
 type ProductService interface {
-	CreateProduct(ctx context.Context, req *CreateProductRequest, variantFiles []VariantFiles) error
+	CreateProduct(ctx context.Context, req *CreateProductRequest, productFiles ProductFiles) error
 	GetAllProducts(ctx context.Context) ([]*Product, error)
 	GetProductByID(ctx context.Context, id string) (*Product, error)
-	UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, variantFiles []VariantFiles) error
+	UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error
 	DeleteProduct(ctx context.Context, id string) error
 }
 
@@ -31,8 +31,7 @@ func NewProductService(repository ProductRepository, uploader *cloudinaryutil.Cl
 	}
 }
 
-
-func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRequest, variantFiles []VariantFiles) error {
+func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRequest, productFiles ProductFiles) error {
 
 	if req.ProductName == "" {
 		return fmt.Errorf("product name is required")
@@ -42,110 +41,93 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		return fmt.Errorf("product description is required")
 	}
 
+	if req.Color == "" {
+		return fmt.Errorf("color is required")
+	}
+
 	categoryID, err := primitive.ObjectIDFromHex(req.CategoryID)
 	if err != nil {
 		return fmt.Errorf("invalid category id: %v", err)
 	}
 
-	if len(req.Variants) == 0 {
-		return fmt.Errorf("variants are required")
+	if len(req.Sizes) == 0 {
+		return fmt.Errorf("sizes are required")
 	}
 
-	if len(req.Variants) != len(variantFiles) {
-		return fmt.Errorf("variant count mismatch with files")
+	var sizes []SizeOptions
+
+	for i, s := range req.Sizes {
+
+		if s.Size == "" || s.Price <= 0 {
+			return fmt.Errorf("invalid size option at index %d", i)
+		}
+
+		if s.Stock < 0 {
+			return fmt.Errorf("invalid stock for size option at index %d", i)
+		}
+
+		if s.Currency == "" {
+			return fmt.Errorf("invalid currency for size option at index %d", i)
+		}
+
+		sizes = append(sizes, SizeOptions{
+			SKU:      s.SKU,
+			Size:     s.Size,
+			Stock:    s.Stock,
+			Price:    s.Price,
+			Discount: s.Discount,
+			Currency: s.Currency,
+		})
 	}
 
-	var variants []ProductVariant
-
-
-	for i, v := range req.Variants {
-
-		if v.Color == "" {
-			return fmt.Errorf("color is required for variant %d", i)
-		}
-
-		var sizes []SizeOptions
-
-		for _, s := range v.Sizes {
-
-			if s.Size == "" || s.Price <= 0 {
-				return fmt.Errorf("invalid size option for variant %d", i)
-			}
-			
-			if s.Stock < 0 {
-				return fmt.Errorf("invalid stock for size option %d", i)
-			}
-			
-			if s.Currency == "" {
-				return fmt.Errorf("invalid currency for size option %d", i)
-			}
-
-			sizes = append(sizes, SizeOptions{
-				SKU:      s.SKU,
-				Size:     s.Size,
-				Stock:    s.Stock,
-				Price:    s.Price,
-				Discount: s.Discount,
-				Currency: s.Currency,
-			})
-
-		}
-
-		variant := ProductVariant{
-			Color:    v.Color,
-			Sizes:    sizes,
-		}
-
-		if variantFiles[i].MainImage != nil {
-
-			tempPath := "/tmp/" + variantFiles[i].MainImage.Filename
-			if err := fileutil.SaveUploadedFile(variantFiles[i].MainImage, tempPath); err != nil {
-				return fmt.Errorf("failed to save avatar: %w", err)
-			}
-
-			defer os.Remove(tempPath)
-
-			mainImageURL, mainImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
-			if err != nil {
-				return fmt.Errorf("failed to upload main image for variant %d: %w", i, err)
-			}
-
-			variant.MainImage = mainImageURL
-			variant.MainImagePublicID = mainImagePublicID
-		}
-
-		var subImages []SubImage
-		for j, subImage := range variantFiles[i].SubImages {
-
-			tempPath := "/tmp/" + subImage.Filename
-			if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
-				return fmt.Errorf("failed to save avatar: %w", err)
-			}
-			defer os.Remove(tempPath)
-			
-			subImageURL, subImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
-			if err != nil {
-				return fmt.Errorf("failed to upload sub image %d for variant %d: %w", j, i, err)
-			}
-
-			subImages = append(subImages, SubImage{
-				SubImagePublicID: subImagePublicID,
-				Url:              subImageURL,
-			})
-		}
-		variant.SubImages = subImages
-
-		variants = append(variants, variant)
-	}
-
+	// Create product object
 	product := &Product{
 		ProductName:        req.ProductName,
 		ProductDescription: req.ProductDescription,
 		CategoryID:         categoryID,
-		Variants:           variants,
+		Color:              req.Color,
+		Sizes:              sizes,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 	}
+
+	// Handle main image upload
+	if productFiles.MainImage != nil {
+		tempPath := "/tmp/" + productFiles.MainImage.Filename
+		if err := fileutil.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
+			return fmt.Errorf("failed to save main image: %w", err)
+		}
+		defer os.Remove(tempPath)
+
+		mainImageURL, mainImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
+		if err != nil {
+			return fmt.Errorf("failed to upload main image: %w", err)
+		}
+
+		product.MainImage = mainImageURL
+		product.MainImagePublicID = mainImagePublicID
+	}
+
+	// Handle sub images upload
+	var subImages []SubImage
+	for i, subImage := range productFiles.SubImages {
+		tempPath := "/tmp/" + subImage.Filename
+		if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
+			return fmt.Errorf("failed to save sub image %d: %w", i, err)
+		}
+		defer os.Remove(tempPath)
+
+		subImageURL, subImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
+		if err != nil {
+			return fmt.Errorf("failed to upload sub image %d: %w", i, err)
+		}
+
+		subImages = append(subImages, SubImage{
+			SubImagePublicID: subImagePublicID,
+			Url:              subImageURL,
+		})
+	}
+	product.SubImages = subImages
 
 	fmt.Printf("Product: %+v\n", product)
 
@@ -167,139 +149,130 @@ func (s *productService) GetProductByID(ctx context.Context, id string) (*Produc
 
 }
 
-func (s *productService) UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, variantFiles []VariantFiles) error {
+func (s *productService) UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("invalid product id: %v", err)
 	}
 
-	product, err := s.repository.FindByID(ctx, objectID)
-	if err != nil || product == nil {
-		return fmt.Errorf("product not found")
+	if req.ProductName == "" {
+		return fmt.Errorf("product name is required")
 	}
 
-	if req.ProductName == "" || req.ProductDescription == "" || req.CategoryID == "" {
-		return fmt.Errorf("product name, description and category are required")
+	if req.ProductDescription == "" {
+		return fmt.Errorf("product description is required")
 	}
 
-	objectCategoryID, err := primitive.ObjectIDFromHex(req.CategoryID)
+	if req.Color == "" {
+		return fmt.Errorf("color is required")
+	}
+
+	categoryID, err := primitive.ObjectIDFromHex(req.CategoryID)
 	if err != nil {
 		return fmt.Errorf("invalid category id: %v", err)
 	}
 
-	var variants []ProductVariant
+	if len(req.Sizes) == 0 {
+		return fmt.Errorf("sizes are required")
+	}
 
-	for i, v := range req.Variants {
-		
-		if v.Color == "" {
-			return fmt.Errorf("invalid color for variant %d", i)
+	// Get existing product
+	existingProduct, err := s.repository.FindByID(ctx, objectID)
+	if err != nil {
+		return fmt.Errorf("failed to get existing product: %w", err)
+	}
+
+	// Validate and convert sizes
+	var sizes []SizeOptions
+	for i, s := range req.Sizes {
+		if s.Size == "" || s.Price <= 0 {
+			return fmt.Errorf("invalid size option at index %d", i)
 		}
 
-		var sizes []SizeOptions
-
-		for _, s := range v.Sizes {
-			
-			if s.Currency == "" {
-				return fmt.Errorf("invalid currency for size option %d", i)
-			}
-
-			if s.Discount < 0 || s.Discount > 100 {
-				return fmt.Errorf("invalid discount for size option %d", i)
-			}
-
-			if s.Price < 0 {
-				return fmt.Errorf("invalid price for size option %d", i)
-			}
-
-			if s.SKU == "" {
-				return fmt.Errorf("invalid sku for size option %d", i)
-			}
-
-			if s.Stock < 0 {
-				return fmt.Errorf("invalid stock for size option %d", i)
-			}
-
-			if s.Size == "" {
-				return fmt.Errorf("invalid size for size option %d", i)
-			}
-
-			sizes = append(sizes, SizeOptions{
-				Currency: s.Currency,
-				Discount: s.Discount,
-				Price:    s.Price,
-				SKU:      s.SKU,
-				Stock:    s.Stock,
-				Size:     s.Size,
-			})
+		if s.Stock < 0 {
+			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-		variant := ProductVariant{
-			Color:     v.Color,
-			Sizes:     sizes,
+		if s.Currency == "" {
+			return fmt.Errorf("invalid currency for size option at index %d", i)
 		}
 
-		if variantFiles[i].MainImage != nil {
-			tempPath := "/tmp/" + variantFiles[i].MainImage.Filename
-			if err := fileutil.SaveUploadedFile(variantFiles[i].MainImage, tempPath); err != nil {
-				return fmt.Errorf("failed to save main image: %w", err)
+		sizes = append(sizes, SizeOptions{
+			SKU:      s.SKU,
+			Size:     s.Size,
+			Stock:    s.Stock,
+			Price:    s.Price,
+			Discount: s.Discount,
+			Currency: s.Currency,
+		})
+	}
+
+	// Update product object
+	existingProduct.ProductName = req.ProductName
+	existingProduct.ProductDescription = req.ProductDescription
+	existingProduct.CategoryID = categoryID
+	existingProduct.Color = req.Color
+	existingProduct.Sizes = sizes
+	existingProduct.UpdatedAt = time.Now()
+
+	// Handle main image upload (if new image provided)
+	if productFiles.MainImage != nil {
+		// Delete old main image if exists
+		if existingProduct.MainImagePublicID != "" {
+			if err := s.cloudUploader.DeleteImage(ctx, existingProduct.MainImagePublicID); err != nil {
+				// Log error but don't fail the update
+				fmt.Printf("Warning: failed to delete old main image: %v\n", err)
+			}
+		}
+
+		tempPath := "/tmp/" + productFiles.MainImage.Filename
+		if err := fileutil.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
+			return fmt.Errorf("failed to save main image: %w", err)
+		}
+		defer os.Remove(tempPath)
+
+		mainImageURL, mainImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
+		if err != nil {
+			return fmt.Errorf("failed to upload main image: %w", err)
+		}
+
+		existingProduct.MainImage = mainImageURL
+		existingProduct.MainImagePublicID = mainImagePublicID
+	}
+
+	// Handle sub images upload (if new images provided)
+	if len(productFiles.SubImages) > 0 {
+		// Delete old sub images
+		for _, subImg := range existingProduct.SubImages {
+			if err := s.cloudUploader.DeleteImage(ctx, subImg.SubImagePublicID); err != nil {
+				// Log error but don't fail the update
+				fmt.Printf("Warning: failed to delete old sub image: %v\n", err)
+			}
+		}
+
+		var subImages []SubImage
+		for i, subImage := range productFiles.SubImages {
+			tempPath := "/tmp/" + subImage.Filename
+			if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
+				return fmt.Errorf("failed to save sub image %d: %w", i, err)
 			}
 			defer os.Remove(tempPath)
 
-			_ = s.cloudUploader.DeleteImage(ctx, product.Variants[i].MainImagePublicID)
-
-			mainImageURL, mainImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
+			subImageURL, subImagePublicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
 			if err != nil {
-				return fmt.Errorf("failed to upload main image: %w", err)
+				return fmt.Errorf("failed to upload sub image %d: %w", i, err)
 			}
 
-			variant.MainImage = mainImageURL
-			variant.MainImagePublicID = mainImagePublicID
-		} else {
-			variant.MainImage = product.Variants[i].MainImage
-			variant.MainImagePublicID = product.Variants[i].MainImagePublicID
+			subImages = append(subImages, SubImage{
+				SubImagePublicID: subImagePublicID,
+				Url:              subImageURL,
+			})
 		}
-
-		if len(variantFiles[i].SubImages) > 0 {
-
-			for _, sub := range product.Variants[i].SubImages {
-				_ = s.cloudUploader.DeleteImage(ctx, sub.SubImagePublicID)
-			}
-
-			for _, subImage := range variantFiles[i].SubImages {
-				tempPath := "/tmp/" + subImage.Filename
-				if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
-					return fmt.Errorf("failed to save sub image: %w", err)
-				}
-				defer os.Remove(tempPath)
-
-				url, publicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "products")
-				if err != nil {
-					return fmt.Errorf("failed to upload sub image: %w", err)
-				}
-
-				variant.SubImages = append(variant.SubImages, SubImage{
-					Url:              url,
-					SubImagePublicID: publicID,
-				})
-			}
-		} else {
-			variant.SubImages = product.Variants[i].SubImages
-		}
-
-		variants = append(variants, variant)
+		existingProduct.SubImages = subImages
 	}
 
-	productUpdate := &Product{
-		ProductName:        req.ProductName,
-		ProductDescription: req.ProductDescription,
-		CategoryID:         objectCategoryID,
-		Variants:           variants,
-		UpdatedAt:          time.Now(),
-	}
-
-	return s.repository.UpdateByID(ctx, objectID, productUpdate)
-
+	return s.repository.UpdateByID(ctx, objectID, existingProduct)
 }
 
 func (s *productService) DeleteProduct(ctx context.Context, id string) error {
@@ -314,18 +287,15 @@ func (s *productService) DeleteProduct(ctx context.Context, id string) error {
 		return fmt.Errorf("product not found")
 	}
 
-	for _, v := range product.Variants {
+	err = s.cloudUploader.DeleteImage(ctx, product.MainImagePublicID)
+	if err != nil {
+		return fmt.Errorf("failed to delete main image: %w", err)
+	}
 
-		err := s.cloudUploader.DeleteImage(ctx, v.MainImagePublicID)
+	for _, sub := range product.SubImages {
+		err := s.cloudUploader.DeleteImage(ctx, sub.SubImagePublicID)
 		if err != nil {
-			return fmt.Errorf("failed to delete main image: %w", err)
-		}
-
-		for _, sub := range v.SubImages {
-			err := s.cloudUploader.DeleteImage(ctx, sub.SubImagePublicID)
-			if err != nil {
-				return fmt.Errorf("failed to delete sub image: %w", err)
-			}
+			return fmt.Errorf("failed to delete sub image: %w", err)
 		}
 	}
 

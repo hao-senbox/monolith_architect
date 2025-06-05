@@ -13,7 +13,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, userId primitive.ObjectID) (*UserWithProfile, error)
-	UpdateByID(ctx context.Context, userID string, updateFields bson.M) error
+	UpdateByID(ctx context.Context, userID primitive.ObjectID, updateFields bson.M) error
 	DeleteByID(ctx context.Context, userID primitive.ObjectID) error
 }
 
@@ -115,17 +115,12 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*User, 
 	
 }
 
-func (r *userRepository) UpdateByID(ctx context.Context, userID string, updateFields bson.M) error {
+func (r *userRepository) UpdateByID(ctx context.Context, userID primitive.ObjectID, updateFields bson.M) error {
 
-	oid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return err
-	}
-
-	filter := bson.M{"_id": oid}
+	filter := bson.M{"_id": userID}
 	update := bson.M{"$set": updateFields}
 
-	_, err = r.collection.UpdateOne(ctx, filter, update)
+	_, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}

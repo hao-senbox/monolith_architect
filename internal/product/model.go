@@ -2,6 +2,7 @@ package product
 
 import (
 	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -12,17 +13,13 @@ type Product struct {
 	ProductDescription string             `json:"product_description" bson:"product_description"`
 	RatingAverage      float64            `json:"rating_average" bson:"rating_average"`
 	ReviewsCount       int                `json:"reviews_count" bson:"reviews_count"`
-	Variants           []ProductVariant   `json:"variants" bson:"variants"`
+	Color              string             `json:"color" bson:"color"`
+	MainImagePublicID  string             `json:"main_image_public_id" bson:"main_image_public_id"`
+	MainImage          string             `json:"main_image" bson:"main_image"`
+	SubImages          []SubImage         `json:"sub_image" bson:"sub_image"`
+	Sizes              []SizeOptions      `json:"sizes" bson:"sizes"`
 	CreatedAt          time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at" bson:"updated_at"`
-}
-
-type ProductVariant struct {
-	Color             string        `json:"color" bson:"color"`
-	MainImagePublicID string        `json:"main_image_public_id" bson:"main_image_public_id"`
-	MainImage         string        `json:"main_image" bson:"main_image"`
-	SubImages         []SubImage    `json:"sub_image" bson:"sub_image"`
-	Sizes             []SizeOptions `json:"sizes" bson:"sizes"`
 }
 
 type SizeOptions struct {
@@ -38,5 +35,3 @@ type SubImage struct {
 	Url              string `json:"url" bson:"url"`
 	SubImagePublicID string `json:"sub_image_public_id" bson:"sub_image_public_id"`
 }
-
-

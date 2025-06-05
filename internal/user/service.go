@@ -7,6 +7,7 @@ import (
 	"log"
 	"modular_monolith/internal/profile"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -24,6 +25,7 @@ type UserService interface {
 	DeleteUser(ctx context.Context, userID string) error
 	ValidateToken(tokenString string) (*jwt.Token, error)
 	RefreshToken(refreshToken string) (string, string, error)
+	LogoutUser(ctx context.Context, userID string) error
 }
 
 type userService struct {
@@ -128,6 +130,7 @@ func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 }
 
 func (s *userService) LoginUser(ctx context.Context, email, password string) (*User, error) {
+
 	if email == "" || password == "" {
 		return nil, fmt.Errorf("email and password are required")
 	}
@@ -151,7 +154,7 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 		"updatedAt":    time.Now().Format(time.RFC3339),
 	}
 	
-	err = s.repository.UpdateByID(ctx, user.ID.Hex(), updateFields)
+	err = s.repository.UpdateByID(ctx, user.ID, updateFields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user tokens: %w", err)
 	}
@@ -259,4 +262,30 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 
 	newToken, newRefreshToken := s.GenerateToken(user_id)
 	return newToken, newRefreshToken, nil
+}
+
+func (s *userService) LogoutUser(ctx context.Context, userID string) error {
+
+	if strings.HasPrefix(userID, "ObjectID(") {
+		userID = strings.TrimPrefix(userID, "ObjectID(\"")
+		userID = strings.TrimSuffix(userID, "\")")
+	}
+	
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+	
+	updateFields := bson.M{
+		"token":        "",
+		"refreshToken": "",
+		"updatedAt":    time.Now().Format(time.RFC3339),
+	}
+	
+	err = s.repository.UpdateByID(ctx, objectID, updateFields)
+	if err != nil {
+		return fmt.Errorf("failed to update user tokens: %w", err)
+	}
+	
+	return nil
 }

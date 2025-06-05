@@ -1,5 +1,7 @@
 $(document).ready(function() {
+    console.log('Document ready - jQuery version:', $.fn.jquery);
     const BASE_URL = 'https://monolith-architect.onrender.com';
+    // const BASE_URL = 'http://localhost:8003';
     const API_ENDPOINTS = {
         products: `${BASE_URL}/api/v1/product`,
         product: (id) => `${BASE_URL}/api/v1/product/${id}`,
@@ -9,7 +11,7 @@ $(document).ready(function() {
     let products = [];
     let categories = [];
     let currentProductId = null;
-    let variantCount = 0;
+    let sizeCount = 0;
 
     // Check if user is logged in
     if (!getToken()) {
@@ -54,9 +56,6 @@ $(document).ready(function() {
                 'Accept': 'application/json',
                 'Authorization': `Bearer ${getToken()}`
             },
-            xhrFields: {
-                withCredentials: true
-            },
             success: function(response) {
                 products = response.data || [];
                 renderProductTable();
@@ -81,15 +80,14 @@ $(document).ready(function() {
         
         if (productsToRender.length === 0) {
             $('#productTableBody').html('<tr><td colspan="6" class="px-6 py-4 text-center empty-state">No products found</td></tr>');
-            return;
         }
 
         let html = '';
         productsToRender.forEach(product => {
-            const mainImage = product.variants[0]?.main_image || '';
+            const mainImage = product.main_image || '';
             const category = categories.find(cat => cat.id === product.category_id);
-            const priceRange = getPriceRange(product.variants);
-            const totalStock = getTotalStock(product.variants);
+            const priceRange = getPriceRange(product.sizes);
+            const totalStock = getTotalStock(product.sizes);
             const stockStatus = getStockStatus(totalStock);
 
             html += `
@@ -127,18 +125,18 @@ $(document).ready(function() {
     }
 
     // Helper functions for product table
-    function getPriceRange(variants) {
+    function getPriceRange(sizes) {
+        if (!sizes || sizes.length === 0) return 'N/A';
+        
         let minPrice = Infinity;
         let maxPrice = -Infinity;
         let currency = '';
 
-        variants.forEach(variant => {
-            variant.sizes.forEach(size => {
-                const price = size.price * (1 - size.discount / 100);
-                if (price < minPrice) minPrice = price;
-                if (price > maxPrice) maxPrice = price;
-                currency = size.currency;
-            });
+        sizes.forEach(size => {
+            const price = size.price * (1 - size.discount / 100);
+            if (price < minPrice) minPrice = price;
+            if (price > maxPrice) maxPrice = price;
+            currency = size.currency;
         });
 
         if (minPrice === Infinity || maxPrice === -Infinity) return 'N/A';
@@ -146,10 +144,9 @@ $(document).ready(function() {
         return `${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)} ${currency}`;
     }
 
-    function getTotalStock(variants) {
-        return variants.reduce((total, variant) => {
-            return total + variant.sizes.reduce((variantTotal, size) => variantTotal + size.stock, 0);
-        }, 0);
+    function getTotalStock(sizes) {
+        if (!sizes || sizes.length === 0) return 0;
+        return sizes.reduce((total, size) => total + (size.stock || 0), 0);
     }
 
     function getStockStatus(stock) {
@@ -174,15 +171,27 @@ $(document).ready(function() {
 
     // Setup event listeners
     function setupEventListeners() {
+        // Function to show modal
+        function showProductModal() {
+            const modal = document.getElementById('productModal');
+            if (!modal) {
+                console.error('Modal element not found!');
+                return;
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            console.log('Modal classes after show:', modal.className);
+        }
+
         // Add product button
         $('#addProductBtn').off('click').on('click', function() {
             currentProductId = null;
-            variantCount = 0;
+            sizeCount = 0;
             $('#modalTitle').text('Add Product');
             $('#productForm')[0].reset();
-            $('#variantsList').empty();
-            addVariant();
-            $('#productModal').removeClass('hidden').addClass('flex');
+            $('#sizesList').empty();
+            addSize();
+            showProductModal();
         });
 
         // Close modal
@@ -190,26 +199,17 @@ $(document).ready(function() {
             $('#productModal').removeClass('flex').addClass('hidden');
         });
 
-        // Add variant button
-        $('#addVariantBtn').off('click').on('click', addVariant);
-
-        // Remove variant
-        $(document).on('click', '.remove-variant', function() {
-            $(this).closest('.variant-item').remove();
-            updateVariantNumbers();
-        });
-
-        // Add size
-        $(document).on('click', '.add-size', function() {
-            const variantItem = $(this).closest('.variant-item');
-            const sizesList = variantItem.find('.sizes-list');
-            const variantIndex = variantItem.index();
-            addSize(sizesList, variantIndex);
-        });
+        // Add size button
+        $('#addSizeBtn').off('click').on('click', addSize);
 
         // Remove size
         $(document).on('click', '.remove-size', function() {
-            $(this).closest('.size-item').remove();
+            if ($('.size-item').length > 1) {
+                $(this).closest('.size-item').remove();
+                updateSizeNumbers();
+            } else {
+                showToast('At least one size option is required', 'error');
+            }
         });
 
         // Edit product
@@ -219,16 +219,21 @@ $(document).ready(function() {
             
             if (product) {
                 currentProductId = productId;
-                variantCount = product.variants.length;
+                sizeCount = product.sizes ? product.sizes.length : 0;
                 $('#modalTitle').text('Edit Product');
                 $('#productName').val(product.product_name);
                 $('#productDescription').val(product.product_description);
                 $('#categoryId').val(product.category_id);
+                $('#color').val(product.color);
                 
-                $('#variantsList').empty();
-                product.variants.forEach((variant, index) => {
-                    addVariant(variant, index);
-                });
+                $('#sizesList').empty();
+                if (product.sizes && product.sizes.length > 0) {
+                    product.sizes.forEach((size, index) => {
+                        addSize(size, index);
+                    });
+                } else {
+                    addSize();
+                }
                 
                 $('#productModal').removeClass('hidden').addClass('flex');
             }
@@ -298,39 +303,14 @@ $(document).ready(function() {
         });
     }
 
-    // Add variant
-    function addVariant(variant = null, index = null) {
-        const variantIndex = index !== null ? index : variantCount;
-        const template = $('#variantTemplate').html()
-            .replace(/variants\[0\]/g, `variants[${variantIndex}]`);
-        
-        const variantElement = $(template);
-        variantElement.find('.variant-number').text(variantIndex + 1);
-        
-        if (variant) {
-            variantElement.find('input[name$="[color]"]').val(variant.color);
-            
-            const sizesList = variantElement.find('.sizes-list');
-            variant.sizes.forEach((size, sizeIndex) => {
-                addSize(sizesList, variantIndex, size, sizeIndex);
-            });
-        } else {
-            const sizesList = variantElement.find('.sizes-list');
-            addSize(sizesList, variantIndex);
-        }
-        
-        $('#variantsList').append(variantElement);
-        variantCount++;
-    }
-
     // Add size
-    function addSize(container, variantIndex, size = null, sizeIndex = null) {
-        const sizeIndex2 = sizeIndex !== null ? sizeIndex : container.children().length;
+    function addSize(size = null, index = null) {
+        const sizeIndex = index !== null ? index : $('.size-item').length;
         const template = $('#sizeTemplate').html()
-            .replace(/variants\[0\]/g, `variants[${variantIndex}]`)
-            .replace(/sizes\[0\]/g, `sizes[${sizeIndex2}]`);
+            .replace(/sizes\[0\]/g, `sizes[${sizeIndex}]`);
         
         const sizeElement = $(template);
+        sizeElement.find('.size-number').text(sizeIndex + 1);
         
         if (size) {
             sizeElement.find('input[name$="[size]"]').val(size.size);
@@ -341,21 +321,20 @@ $(document).ready(function() {
             sizeElement.find('input[name$="[stock]"]').val(size.stock);
         }
         
-        container.append(sizeElement);
+        $('#sizesList').append(sizeElement);
     }
 
-    // Update variant numbers
-    function updateVariantNumbers() {
-        $('.variant-item').each(function(index) {
-            $(this).find('.variant-number').text(index + 1);
+    // Update size numbers
+    function updateSizeNumbers() {
+        $('.size-item').each(function(index) {
+            $(this).find('.size-number').text(index + 1);
             $(this).find('input, select').each(function() {
                 const name = $(this).attr('name');
                 if (name) {
-                    $(this).attr('name', name.replace(/variants\[\d+\]/, `variants[${index}]`));
+                    $(this).attr('name', name.replace(/sizes\[\d+\]/, `sizes[${index}]`));
                 }
             });
         });
-        variantCount = $('.variant-item').length;
     }
 
     // Handle form submission
@@ -363,13 +342,13 @@ $(document).ready(function() {
         e.preventDefault();
         
         const formData = new FormData(this);
-        formData.append('variant_count', variantCount);
-        
-        // Get size count for each variant
-        $('.variant-item').each(function(index) {
-            const sizeCount = $(this).find('.size-item').length;
-            formData.append('size_options', sizeCount);
-        });
+        const sizeCount = $('.size-item').length;
+        formData.append('size_count', sizeCount);
+
+        // Log FormData entries
+        for (const pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
 
         if (currentProductId) {
             updateProduct(currentProductId, formData);
@@ -380,6 +359,7 @@ $(document).ready(function() {
 
     // Create product
     function createProduct(formData) {
+        console.log('Creating product...', formData);
         showLoading();
         $.ajax({
             url: API_ENDPOINTS.products,
@@ -476,4 +456,4 @@ $(document).ready(function() {
             }
         });
     }
-}); 
+});

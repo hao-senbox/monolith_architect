@@ -13,7 +13,10 @@ type ProductResponse struct {
 	ProductDescription string             `json:"product_description" bson:"product_description"`
 	RatingAverage      float64            `json:"rating_average" bson:"rating_average"`
 	ReviewsCount       int                `json:"reviews_count" bson:"reviews_count"`
-	Variants           []ProductVariant   `json:"variants" bson:"variants"`
+	Color              string             `json:"color" bson:"color"`
+	MainImage          string             `json:"main_image" bson:"main_image"`
+	SubImages          []SubImage         `json:"sub_image" bson:"sub_image"`
+	Sizes              []SizeOptions      `json:"sizes" bson:"sizes"`
 	CreatedAt          time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at" bson:"updated_at"`
 }

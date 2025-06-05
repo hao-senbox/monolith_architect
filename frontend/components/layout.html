@@ -73,15 +73,8 @@
 
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50"></div>
-
+    <script src="/frontend/js/pages/auth/auth.js"></script>
     <script>
-        // Logout handler
-        $('#logoutBtn').click(function() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            window.location.href = '/frontend/pages/auth/login.html';
-        });
-
         // Set active nav item
         function setActiveNavItem(path) {
             $('nav a').removeClass('bg-gray-700 text-white').addClass('text-gray-300');

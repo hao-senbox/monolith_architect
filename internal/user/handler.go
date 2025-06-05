@@ -108,3 +108,28 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 }
+
+func (h *UserHandler) LogoutUser(c *gin.Context) {
+
+	userIdInterface, ok := c.Get("user_id")
+
+	if !ok {
+		helper.SendError(c, http.StatusUnauthorized, nil, helper.ErrInvalidOperation)
+		return
+	}
+
+	userId, ok := userIdInterface.(string)
+	if !ok {
+		helper.SendError(c, http.StatusInternalServerError, nil, helper.ErrInvalidOperation)
+		return
+	}
+
+	err := h.UserService.LogoutUser(c, userId)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+
+}
