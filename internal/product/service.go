@@ -45,6 +45,18 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		return fmt.Errorf("color is required")
 	}
 
+	if req.Price <= 0 {
+		return fmt.Errorf("price must be greater than 0")
+	}
+
+	if req.Discount < 0 {
+		return fmt.Errorf("discount must be greater than or equal to 0")
+	}
+
+	if req.Currency == "" {
+		return fmt.Errorf("currency is required")
+	}
+
 	categoryID, err := primitive.ObjectIDFromHex(req.CategoryID)
 	if err != nil {
 		return fmt.Errorf("invalid category id: %v", err)
@@ -58,7 +70,7 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 
 	for i, s := range req.Sizes {
 
-		if s.Size == "" || s.Price <= 0 {
+		if s.Size == "" {
 			return fmt.Errorf("invalid size option at index %d", i)
 		}
 
@@ -66,17 +78,10 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-		if s.Currency == "" {
-			return fmt.Errorf("invalid currency for size option at index %d", i)
-		}
 
 		sizes = append(sizes, SizeOptions{
-			SKU:      s.SKU,
 			Size:     s.Size,
 			Stock:    s.Stock,
-			Price:    s.Price,
-			Discount: s.Discount,
-			Currency: s.Currency,
 		})
 	}
 
@@ -86,6 +91,9 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		ProductDescription: req.ProductDescription,
 		CategoryID:         categoryID,
 		Color:              req.Color,
+		Price:              req.Price,
+		Discount:           req.Discount,
+		Currency:           req.Currency,
 		Sizes:              sizes,
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
@@ -168,6 +176,18 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 		return fmt.Errorf("color is required")
 	}
 
+	if req.Price < 0 {
+		return fmt.Errorf("price must be greater than or equal to 0")
+	}
+
+	if req.Discount < 0 {
+		return fmt.Errorf("discount must be greater than or equal to 0")
+	}
+
+	if req.Currency == "" {
+		return fmt.Errorf("currency is required")
+	}
+
 	categoryID, err := primitive.ObjectIDFromHex(req.CategoryID)
 	if err != nil {
 		return fmt.Errorf("invalid category id: %v", err)
@@ -186,7 +206,8 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 	// Validate and convert sizes
 	var sizes []SizeOptions
 	for i, s := range req.Sizes {
-		if s.Size == "" || s.Price <= 0 {
+
+		if s.Size == "" {
 			return fmt.Errorf("invalid size option at index %d", i)
 		}
 
@@ -194,17 +215,9 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-		if s.Currency == "" {
-			return fmt.Errorf("invalid currency for size option at index %d", i)
-		}
-
 		sizes = append(sizes, SizeOptions{
-			SKU:      s.SKU,
 			Size:     s.Size,
 			Stock:    s.Stock,
-			Price:    s.Price,
-			Discount: s.Discount,
-			Currency: s.Currency,
 		})
 	}
 
@@ -213,6 +226,9 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 	existingProduct.ProductDescription = req.ProductDescription
 	existingProduct.CategoryID = categoryID
 	existingProduct.Color = req.Color
+	existingProduct.Price = req.Price
+	existingProduct.Discount = req.Discount
+	existingProduct.Currency = req.Currency
 	existingProduct.Sizes = sizes
 	existingProduct.UpdatedAt = time.Now()
 

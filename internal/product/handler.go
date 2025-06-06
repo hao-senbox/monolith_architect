@@ -33,6 +33,17 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	req.ProductDescription = c.PostForm("product_description")
 	req.CategoryID = c.PostForm("category_id")
 	req.Color = c.PostForm("color")
+	if priceStr := c.PostForm("price"); priceStr != "" {
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			req.Price = price
+		}
+	}
+	if discountStr := c.PostForm("discount"); discountStr != "" {
+		if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
+			req.Discount = discount
+		}
+	}
+	req.Currency = c.PostForm("currency")
 
 	if req.ProductName == "" || req.ProductDescription == "" || req.CategoryID == "" || req.Color == "" {
 		helper.SendError(c, http.StatusBadRequest, fmt.Errorf("invalid request: product_name, product_description, category_id or color is missing"), helper.ErrInvalidRequest)
@@ -49,23 +60,10 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 	var sizes []CreateSizeOptionsRequest
 	for i := 0; i < sizeCount; i++ {
+
 		var size CreateSizeOptionsRequest
 
-		size.SKU = c.PostForm(fmt.Sprintf("sizes[%d][sku]", i))
 		size.Size = c.PostForm(fmt.Sprintf("sizes[%d][size]", i))
-		size.Currency = c.PostForm(fmt.Sprintf("sizes[%d][currency]", i))
-
-		if priceStr := c.PostForm(fmt.Sprintf("sizes[%d][price]", i)); priceStr != "" {
-			if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-				size.Price = price
-			}
-		}
-
-		if discountStr := c.PostForm(fmt.Sprintf("sizes[%d][discount]", i)); discountStr != "" {
-			if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
-				size.Discount = discount
-			}
-		}
 
 		if stockStr := c.PostForm(fmt.Sprintf("sizes[%d][stock]", i)); stockStr != "" {
 			if stock, err := strconv.Atoi(stockStr); err == nil {
@@ -139,6 +137,17 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	req.ProductDescription = c.PostForm("product_description")
 	req.CategoryID = c.PostForm("category_id")
 	req.Color = c.PostForm("color")
+	if priceStr := c.PostForm("price"); priceStr != "" {
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			req.Price = price
+		}
+	}
+	if discountStr := c.PostForm("discount"); discountStr != "" {
+		if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
+			req.Discount = discount
+		}
+	}
+	req.Currency = c.PostForm("currency")
 
 	if req.ProductName == "" || req.ProductDescription == "" || req.CategoryID == "" || req.Color == "" {
 		helper.SendError(c, http.StatusBadRequest, fmt.Errorf("invalid request: product_name, product_description, category_id or color is missing"), helper.ErrInvalidRequest)
@@ -156,23 +165,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	var sizes []CreateSizeOptionsRequest
 	for i := 0; i < len(product.Sizes); i++ {
 		var size CreateSizeOptionsRequest
-
-		size.SKU = c.PostForm(fmt.Sprintf("sizes[%d][sku]", i))
 		size.Size = c.PostForm(fmt.Sprintf("sizes[%d][size]", i))
-		size.Currency = c.PostForm(fmt.Sprintf("sizes[%d][currency]", i))
-
-		if priceStr := c.PostForm(fmt.Sprintf("sizes[%d][price]", i)); priceStr != "" {
-			if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
-				size.Price = price
-			}
-		}
-
-		if discountStr := c.PostForm(fmt.Sprintf("sizes[%d][discount]", i)); discountStr != "" {
-			if discount, err := strconv.ParseFloat(discountStr, 64); err == nil {
-				size.Discount = discount
-			}
-		}
-
 		if stockStr := c.PostForm(fmt.Sprintf("sizes[%d][stock]", i)); stockStr != "" {
 			if stock, err := strconv.Atoi(stockStr); err == nil {
 				size.Stock = stock

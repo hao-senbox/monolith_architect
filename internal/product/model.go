@@ -17,18 +17,17 @@ type Product struct {
 	MainImagePublicID  string             `json:"main_image_public_id" bson:"main_image_public_id"`
 	MainImage          string             `json:"main_image" bson:"main_image"`
 	SubImages          []SubImage         `json:"sub_image" bson:"sub_image"`
+	Price              float64            `json:"price" bson:"price"`
+	Discount           float64            `json:"discount" bson:"discount"`
+	Currency           string             `json:"currency" bson:"currency"`
 	Sizes              []SizeOptions      `json:"sizes" bson:"sizes"`
 	CreatedAt          time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt          time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
 type SizeOptions struct {
-	SKU      string  `json:"sku" bson:"sku"`
-	Size     string  `json:"size" bson:"size"`
-	Stock    int     `json:"stock" bson:"stock"`
-	Price    float64 `json:"price" bson:"price"`
-	Discount float64 `json:"discount" bson:"discount"`
-	Currency string  `json:"currency" bson:"currency"`
+	Size  string `json:"size" bson:"size"`
+	Stock int    `json:"stock" bson:"stock"`
 }
 
 type SubImage struct {
