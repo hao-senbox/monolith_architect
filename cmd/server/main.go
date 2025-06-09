@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"modular_monolith/config"
+	"modular_monolith/internal/cart"
 	"modular_monolith/internal/category"
 	"modular_monolith/internal/cloudinaryutil"
 	"modular_monolith/internal/product"
@@ -79,10 +80,16 @@ func main() {
 	productsService := product.NewProductService(productsRepository, cld)
 	productsHandler := product.NewProductHandler(productsService)
 
+	carts := mongoClient.Database(cfg.MongoDB).Collection("carts")
+	cartsRepository := cart.NewCartRepository(carts)
+	cartsService := cart.NewCartService(cartsRepository, productsRepository)
+	cartsHandler := cart.NewCartHandler(cartsService)
+
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
 	category.RegisterRoutes(r, categoryHandler)
 	product.RegisterRoutes(r, productsHandler)
+	cart.RegisterRoutes(r, cartsHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

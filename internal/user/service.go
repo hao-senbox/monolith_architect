@@ -194,7 +194,7 @@ func (s *userService) GenerateToken(userID string) (string, string) {
 
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Hour * 8)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
