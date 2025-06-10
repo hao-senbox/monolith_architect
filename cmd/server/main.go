@@ -4,12 +4,13 @@ import (
 	"context"
 	"log"
 	"modular_monolith/config"
+	"modular_monolith/helper"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/category"
-	"modular_monolith/internal/cloudinaryutil"
 	"modular_monolith/internal/product"
 	"modular_monolith/internal/profile"
 	"modular_monolith/internal/user"
+	review "modular_monolith/internal/reviews"
 	"os"
 	"time"
 
@@ -34,7 +35,7 @@ func main() {
 
 	cfg := config.LoadConfig()
 
-	cld, err := cloudinaryutil.NewCloudinaryUploader(cfg.Clouldinary)
+	cld, err := helper.NewCloudinaryUploader(cfg.Clouldinary)
 	if err != nil {
 		panic(err)
 	}
@@ -85,6 +86,12 @@ func main() {
 	cartsService := cart.NewCartService(cartsRepository, productsRepository)
 	cartsHandler := cart.NewCartHandler(cartsService)
 
+	reviews := mongoClient.Database(cfg.MongoDB).Collection("reviews")
+	reviewsRepository := review.NewReviewRepository(reviews)
+	reviewsService := review.NewReviewService(reviewsRepository)
+	reviewsHandler := review.NewReviewHandler(reviewsService)
+
+	review.RegisterRoutes(r, reviewsHandler)
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)
 	category.RegisterRoutes(r, categoryHandler)

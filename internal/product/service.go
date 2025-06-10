@@ -3,8 +3,7 @@ package product
 import (
 	"context"
 	"fmt"
-	"modular_monolith/internal/cloudinaryutil"
-	fileutil "modular_monolith/internal/common"
+	"modular_monolith/helper"
 	"os"
 	"time"
 
@@ -21,10 +20,10 @@ type ProductService interface {
 
 type productService struct {
 	repository    ProductRepository
-	cloudUploader *cloudinaryutil.CloudinaryUploader
+	cloudUploader *helper.CloudinaryUploader
 }
 
-func NewProductService(repository ProductRepository, uploader *cloudinaryutil.CloudinaryUploader) ProductService {
+func NewProductService(repository ProductRepository, uploader *helper.CloudinaryUploader) ProductService {
 	return &productService{
 		repository:    repository,
 		cloudUploader: uploader,
@@ -102,7 +101,7 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 	// Handle main image upload
 	if productFiles.MainImage != nil {
 		tempPath := "/tmp/" + productFiles.MainImage.Filename
-		if err := fileutil.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
+		if err := helper.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
 			return fmt.Errorf("failed to save main image: %w", err)
 		}
 		defer os.Remove(tempPath)
@@ -120,7 +119,7 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 	var subImages []SubImage
 	for i, subImage := range productFiles.SubImages {
 		tempPath := "/tmp/" + subImage.Filename
-		if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
+		if err := helper.SaveUploadedFile(subImage, tempPath); err != nil {
 			return fmt.Errorf("failed to save sub image %d: %w", i, err)
 		}
 		defer os.Remove(tempPath)
@@ -243,7 +242,7 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 		}
 
 		tempPath := "/tmp/" + productFiles.MainImage.Filename
-		if err := fileutil.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
+		if err := helper.SaveUploadedFile(productFiles.MainImage, tempPath); err != nil {
 			return fmt.Errorf("failed to save main image: %w", err)
 		}
 		defer os.Remove(tempPath)
@@ -270,7 +269,7 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 		var subImages []SubImage
 		for i, subImage := range productFiles.SubImages {
 			tempPath := "/tmp/" + subImage.Filename
-			if err := fileutil.SaveUploadedFile(subImage, tempPath); err != nil {
+			if err := helper.SaveUploadedFile(subImage, tempPath); err != nil {
 				return fmt.Errorf("failed to save sub image %d: %w", i, err)
 			}
 			defer os.Remove(tempPath)

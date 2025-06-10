@@ -42,7 +42,23 @@ func NewUserService(repository UserRepository, profileService profile.ProfileSer
 
 func (s *userService) GetAllUsers(ctx context.Context) ([]*UserWithProfile, error) {
 
-	return s.repository.FindAll(ctx)
+	var userAll []*UserWithProfile
+
+	user, err := s.repository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, u := range user {
+		userWithProfile, err := s.repository.FindByID(ctx, u.ID)
+		if err != nil {
+			return nil, err
+		}
+		userAll = append(userAll, userWithProfile)
+	}
+
+	return userAll, nil
+
 }
 
 func (s *userService) DeleteUser(ctx context.Context, userID string) error {

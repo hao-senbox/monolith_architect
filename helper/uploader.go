@@ -1,4 +1,4 @@
-package cloudinaryutil
+package helper
 
 import (
 	"context"

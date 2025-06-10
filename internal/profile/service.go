@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
-	"modular_monolith/internal/cloudinaryutil"
-	fileutil "modular_monolith/internal/common"
+	"modular_monolith/helper"
 	"os"
 	"time"
 
@@ -20,11 +19,11 @@ type ProfileService interface {
 
 type profileService struct {
 	repository    ProfileRepository
-	cloudUploader *cloudinaryutil.CloudinaryUploader
+	cloudUploader *helper.CloudinaryUploader
 }
 
 func NewProfileService(repository ProfileRepository,
-	uploader *cloudinaryutil.CloudinaryUploader) ProfileService {
+	uploader *helper.CloudinaryUploader) ProfileService {
 	return &profileService{
 		repository:    repository,
 		cloudUploader: uploader,
@@ -61,7 +60,7 @@ func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 	}
 
 	tempPath := "/tmp/" + file.Filename
-	if err := fileutil.SaveUploadedFile(file, tempPath); err != nil {
+	if err := helper.SaveUploadedFile(file, tempPath); err != nil {
 		return fmt.Errorf("failed to save avatar: %w", err)
 	}
 	defer os.Remove(tempPath)
@@ -122,7 +121,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 
 	if file != nil {
 		tempPath := "/tmp/" + file.Filename
-		if err := fileutil.SaveUploadedFile(file, tempPath); err != nil {
+		if err := helper.SaveUploadedFile(file, tempPath); err != nil {
 			return fmt.Errorf("failed to save avatar: %w", err)
 		}
 		defer os.Remove(tempPath)

@@ -9,7 +9,7 @@ import (
 )
 
 type UserRepository interface {
-	FindAll(ctx context.Context) ([]*UserWithProfile, error)
+	FindAll(ctx context.Context) ([]*User, error)
 	Create(ctx context.Context, user *User) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, userId primitive.ObjectID) (*UserWithProfile, error)
@@ -33,9 +33,9 @@ func (r *userRepository) DeleteByID(ctx context.Context, userID primitive.Object
 	return nil
 }
 
-func (r *userRepository) FindAll(ctx context.Context) ([]*UserWithProfile, error) {
+func (r *userRepository) FindAll(ctx context.Context) ([]*User, error) {
 
-	var userAll []*UserWithProfile
+	var userAll []*User
 
 	cursor, err := r.collection.Find(ctx, bson.M{})
 	if err != nil {
@@ -44,7 +44,7 @@ func (r *userRepository) FindAll(ctx context.Context) ([]*UserWithProfile, error
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var user UserWithProfile
+		var user User
 		if err := cursor.Decode(&user); err != nil {
 			return nil, err
 		}
