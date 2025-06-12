@@ -31,4 +31,17 @@ func (r *ReviewHandler) CreateReview(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusCreated, "success", nil)
+
+}
+
+func (r *ReviewHandler) GetAllReviews(c *gin.Context) {
+	
+	reviews, err := r.ReviewService.GetAllReviews(c)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", reviews)
+	
 }

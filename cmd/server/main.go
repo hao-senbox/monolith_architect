@@ -88,7 +88,7 @@ func main() {
 
 	reviews := mongoClient.Database(cfg.MongoDB).Collection("reviews")
 	reviewsRepository := review.NewReviewRepository(reviews)
-	reviewsService := review.NewReviewService(reviewsRepository)
+	reviewsService := review.NewReviewService(reviewsRepository, userRepository)
 	reviewsHandler := review.NewReviewHandler(reviewsService)
 
 	review.RegisterRoutes(r, reviewsHandler)

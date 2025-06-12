@@ -11,7 +11,7 @@ func RegisterRoutes(r *gin.Engine, handler *ReviewHandler) {
 	{
 		reviewGroup.Use(middleware.JWTAuthMiddleware())
 		reviewGroup.POST("", handler.CreateReview)
-		// reviewGroup.GET("", handler.GetAllReviews)
+		reviewGroup.GET("", handler.GetAllReviews)
 		// reviewGroup.GET("/:id", handler.GetReviewByID)
 		// reviewGroup.PUT("/:id", handler.UpdateReview)
 		// reviewGroup.DELETE("/:id", handler.DeleteReview)

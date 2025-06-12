@@ -3,11 +3,13 @@ package reviews
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ReviewRepository interface {
 	Create(ctx context.Context, review *Reviews) error
+	FindAll(ctx context.Context) ([]*Reviews, error)
 }
 
 type reviewRepository struct {
@@ -24,4 +26,21 @@ func (r *reviewRepository) Create(ctx context.Context, review *Reviews) error {
 		return err
 	}
 	return nil
+}
+
+func (r *reviewRepository) FindAll(ctx context.Context) ([]*Reviews, error) {
+
+	var reviews []*Reviews
+	
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &reviews); err != nil {
+		return nil, err
+	}
+
+	return reviews, nil
+	
 }
