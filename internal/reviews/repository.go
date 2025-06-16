@@ -4,12 +4,16 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ReviewRepository interface {
 	Create(ctx context.Context, review *Reviews) error
-	FindAll(ctx context.Context) ([]*Reviews, error)
+	FindAll(ctx context.Context, productID primitive.ObjectID) ([]*Reviews, error)
+	FindByID(ctx context.Context, id primitive.ObjectID) (*Reviews, error)
+	UpdateByID(ctx context.Context, id primitive.ObjectID, req *UpdateReviewRequest) error
+	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 }
 
 type reviewRepository struct {
@@ -28,11 +32,11 @@ func (r *reviewRepository) Create(ctx context.Context, review *Reviews) error {
 	return nil
 }
 
-func (r *reviewRepository) FindAll(ctx context.Context) ([]*Reviews, error) {
+func (r *reviewRepository) FindAll(ctx context.Context, productID primitive.ObjectID) ([]*Reviews, error) {
 
 	var reviews []*Reviews
-	
-	cursor, err := r.collection.Find(ctx, bson.M{})
+	filter := bson.M{"product_id": productID}
+	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -43,4 +47,38 @@ func (r *reviewRepository) FindAll(ctx context.Context) ([]*Reviews, error) {
 
 	return reviews, nil
 	
+}
+
+func (r *reviewRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*Reviews, error) {
+
+	var review Reviews
+
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&review)
+	if err != nil {
+		return nil, err
+	}
+
+	return &review, nil
+
+}
+
+func (r *reviewRepository) UpdateByID(ctx context.Context, id primitive.ObjectID, req *UpdateReviewRequest) error {
+
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": req})
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (r *reviewRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
+
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	return nil
+
 }

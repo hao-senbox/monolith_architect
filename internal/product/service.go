@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"modular_monolith/helper"
+	"modular_monolith/internal/reviews"
 	"os"
 	"time"
 
@@ -20,13 +21,17 @@ type ProductService interface {
 
 type productService struct {
 	repository    ProductRepository
+	reviewService reviews.ReviewService
 	cloudUploader *helper.CloudinaryUploader
 }
 
-func NewProductService(repository ProductRepository, uploader *helper.CloudinaryUploader) ProductService {
+func NewProductService(repository ProductRepository,
+	uploader *helper.CloudinaryUploader,
+	reviewService reviews.ReviewService) ProductService {
 	return &productService{
 		repository:    repository,
 		cloudUploader: uploader,
+		reviewService: reviewService,
 	}
 }
 
@@ -77,10 +82,9 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-
 		sizes = append(sizes, SizeOptions{
-			Size:     s.Size,
-			Stock:    s.Stock,
+			Size:  s.Size,
+			Stock: s.Stock,
 		})
 	}
 
@@ -142,7 +146,34 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 }
 
 func (s *productService) GetAllProducts(ctx context.Context) ([]*Product, error) {
-	return s.repository.FindAll(ctx)
+	products, err := s.repository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, product := range products {
+		reviewResp, err := s.reviewService.GetAllReviews(ctx, product.ID.Hex())
+		if err != nil {
+			return nil, err
+		}
+
+		reviews := reviewResp.ReviewsResponse
+		totalRating := 0
+
+		for _, review := range reviews {
+			totalRating += review.Rating
+		}
+
+		if len(reviews) > 0 {
+			product.RatingAverage = float64(totalRating) / float64(len(reviews))
+		} else {
+			product.RatingAverage = 0
+		}
+
+		product.ReviewsCount = len(reviews)
+	}
+
+	return products, nil
 }
 
 func (s *productService) GetProductByID(ctx context.Context, id string) (*Product, error) {
@@ -152,8 +183,33 @@ func (s *productService) GetProductByID(ctx context.Context, id string) (*Produc
 		return nil, fmt.Errorf("invalid product id: %v", err)
 	}
 
-	return s.repository.FindByID(ctx, objectID)
+	product, err := s.repository.FindByID(ctx, objectID)
+	if err != nil || product == nil {
+		return nil, fmt.Errorf("product not found")
+	}
 
+	reviewResp, err := s.reviewService.GetAllReviews(ctx, product.ID.Hex())
+	if err != nil {
+		return nil, err
+	}
+
+	reviews := reviewResp.ReviewsResponse
+	totalRating := 0
+
+	for _, review := range reviews {
+		totalRating += review.Rating
+	}
+
+	if len(reviews) > 0 {
+		product.RatingAverage = float64(totalRating) / float64(len(reviews))
+	} else {
+		product.RatingAverage = 0
+	}
+
+	product.ReviewsCount = len(reviews)
+	
+	return product, nil
+	
 }
 
 func (s *productService) UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error {
@@ -215,8 +271,8 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 		}
 
 		sizes = append(sizes, SizeOptions{
-			Size:     s.Size,
-			Stock:    s.Stock,
+			Size:  s.Size,
+			Stock: s.Stock,
 		})
 	}
 

@@ -76,20 +76,20 @@ func main() {
 	categoryService := category.NewCategoryService(categoryRepository)
 	categoryHandler := category.NewCategoryHandler(categoryService)
 
+	reviews := mongoClient.Database(cfg.MongoDB).Collection("reviews")
+	reviewsRepository := review.NewReviewRepository(reviews)
+	reviewsService := review.NewReviewService(reviewsRepository, userRepository)
+	reviewsHandler := review.NewReviewHandler(reviewsService)
+
 	products := mongoClient.Database(cfg.MongoDB).Collection("products")
 	productsRepository := product.NewProductRepository(products)
-	productsService := product.NewProductService(productsRepository, cld)
+	productsService := product.NewProductService(productsRepository, cld, reviewsService)
 	productsHandler := product.NewProductHandler(productsService)
 
 	carts := mongoClient.Database(cfg.MongoDB).Collection("carts")
 	cartsRepository := cart.NewCartRepository(carts)
 	cartsService := cart.NewCartService(cartsRepository, productsRepository)
 	cartsHandler := cart.NewCartHandler(cartsService)
-
-	reviews := mongoClient.Database(cfg.MongoDB).Collection("reviews")
-	reviewsRepository := review.NewReviewRepository(reviews)
-	reviewsService := review.NewReviewService(reviewsRepository, userRepository)
-	reviewsHandler := review.NewReviewHandler(reviewsService)
 
 	review.RegisterRoutes(r, reviewsHandler)
 	user.RegisterRoutes(r, userHandler)
