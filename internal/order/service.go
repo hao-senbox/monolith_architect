@@ -13,6 +13,7 @@ import (
 
 type OrderService interface {
 	CreateOrder(ctx context.Context, req *CreateOrderRequest) error
+	GetAllOrders(ctx context.Context) ([]Order, error)
 }
 
 type orderService struct {
@@ -112,4 +113,8 @@ func (s *orderService) generateOrderCode() string {
 
 	return fmt.Sprintf("ORD-%s-%s", timestamp, randomStr)
 
+}
+
+func (s *orderService) GetAllOrders(ctx context.Context) ([]Order, error) {
+	return s.orderRepo.FindAll(ctx)
 }

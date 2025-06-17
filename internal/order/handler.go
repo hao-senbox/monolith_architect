@@ -35,3 +35,15 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusCreated, "success", nil)
 	
 }
+
+func (h *OrderHandler) GetAllOrders(c *gin.Context) {
+
+	orders, err := h.OrderService.GetAllOrders(c)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", orders)
+	
+}
