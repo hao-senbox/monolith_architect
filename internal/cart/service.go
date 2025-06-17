@@ -1,19 +1,18 @@
 package cart
 
 import (
+	"context"
 	"fmt"
 	"modular_monolith/internal/product"
-
-	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CartService interface {
-	CreateCart(ctx *gin.Context, req *AddtoCartRequest) error
-	GetCartByUserID(ctx *gin.Context, userID string) (*Cart, error)
-	UpdateCart(ctx *gin.Context, req *UpdateCartRequest) error
-	DeleteItemCart(ctx *gin.Context, req *DeleteItemCartRequest) error
-	DeleteCart(ctx *gin.Context, userID string) error
+	CreateCart(ctx context.Context, req *AddtoCartRequest) error
+	GetCartByUserID(ctx context.Context, userID string) (*Cart, error)
+	UpdateCart(ctx context.Context, req *UpdateCartRequest) error
+	DeleteItemCart(ctx context.Context, req *DeleteItemCartRequest) error
+	DeleteCart(ctx context.Context, userID string) error
 }
 
 type cartService struct {
@@ -28,7 +27,7 @@ func NewCartService(repo CartRepository, productRepo product.ProductRepository) 
 	}
 }
 
-func (s *cartService) CreateCart(c *gin.Context, req *AddtoCartRequest) error {
+func (s *cartService) CreateCart(c context.Context, req *AddtoCartRequest) error {
 
 	productID, err := primitive.ObjectIDFromHex(req.ProductID)
 	if err != nil {
@@ -46,6 +45,7 @@ func (s *cartService) CreateCart(c *gin.Context, req *AddtoCartRequest) error {
 		Quantity:    req.Quantity,
 		TotalPrice:  product.Price * float64(req.Quantity),
 		Price:       product.Price,
+		Size:        req.Size,
 		ImageUrl:    product.MainImage,
 	}
 
@@ -64,7 +64,7 @@ func (s *cartService) CreateCart(c *gin.Context, req *AddtoCartRequest) error {
 
 }
 
-func (s *cartService) GetCartByUserID(c *gin.Context, userID string) (*Cart, error) {
+func (s *cartService) GetCartByUserID(c context.Context, userID string) (*Cart, error) {
 
 	if userID == "" {
 		return nil, fmt.Errorf("user id is required")
@@ -84,7 +84,7 @@ func (s *cartService) GetCartByUserID(c *gin.Context, userID string) (*Cart, err
 
 }
 
-func (s *cartService) UpdateCart(c *gin.Context, req *UpdateCartRequest) error {
+func (s *cartService) UpdateCart(c context.Context, req *UpdateCartRequest) error {
 
 	if req.ProductID == "" {
 		return fmt.Errorf("product id is required")
@@ -116,7 +116,7 @@ func (s *cartService) UpdateCart(c *gin.Context, req *UpdateCartRequest) error {
 
 }
 
-func (s *cartService) DeleteItemCart(c *gin.Context, req *DeleteItemCartRequest) error {
+func (s *cartService) DeleteItemCart(c context.Context, req *DeleteItemCartRequest) error {
 
 	if req.ProductID == "" {
 		return fmt.Errorf("product id is required")
@@ -139,7 +139,7 @@ func (s *cartService) DeleteItemCart(c *gin.Context, req *DeleteItemCartRequest)
 	return s.repo.DeleteItemCart(c, objectProductID, objectUserID)
 }
 
-func (s *cartService) DeleteCart(c *gin.Context, userID string) error {
+func (s *cartService) DeleteCart(c context.Context, userID string) error {
 
 	if userID == "" {
 		return fmt.Errorf("user id is required")

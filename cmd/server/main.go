@@ -7,10 +7,11 @@ import (
 	"modular_monolith/helper"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/category"
+	"modular_monolith/internal/order"
 	"modular_monolith/internal/product"
 	"modular_monolith/internal/profile"
-	"modular_monolith/internal/user"
 	review "modular_monolith/internal/reviews"
+	"modular_monolith/internal/user"
 	"os"
 	"time"
 
@@ -91,6 +92,12 @@ func main() {
 	cartsService := cart.NewCartService(cartsRepository, productsRepository)
 	cartsHandler := cart.NewCartHandler(cartsService)
 
+	orders := mongoClient.Database(cfg.MongoDB).Collection("orders")
+	ordersRepository := order.NewOrderRepository(orders)
+	ordersService := order.NewOrderService(ordersRepository, cartsService)
+	ordersHandler := order.NewOrderHandler(ordersService)
+
+	order.RegisterRoutes(r, ordersHandler)
 	review.RegisterRoutes(r, reviewsHandler)
 	user.RegisterRoutes(r, userHandler)
 	profile.RegisterRoutes(r, profileHandler)

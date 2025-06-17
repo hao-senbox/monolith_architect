@@ -2,6 +2,7 @@ package cart
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"time"
 
@@ -77,9 +78,12 @@ func (r *cartRepository) AddToCart(ctx context.Context, cartItem *CartItem, user
 
 	for i, item := range cart.CartItems {
 		if item.ProductID == cartItem.ProductID {
-			cart.CartItems[i].Quantity += cartItem.Quantity
-			found = true
-			break
+			if item.Size == cartItem.Size {
+				fmt.Printf("CHECKKKK")
+				cart.CartItems[i].Quantity += cartItem.Quantity
+				found = true
+				break
+			}
 		}
 	}
 
@@ -152,6 +156,7 @@ func (r *cartRepository) updateTotalPrice(ctx context.Context, cart *Cart) error
 
 	for _, item := range cart.CartItems {
 		totalPrice += item.Price * float64(item.Quantity)
+		item.TotalPrice = item.Price * float64(item.Quantity)
 	}
 
 	cart.TotalPrice = math.Round(totalPrice*100) / 100
