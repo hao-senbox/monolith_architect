@@ -12,7 +12,6 @@ const (
 	Pending    OrderStatus = "pending"
 	Paid       OrderStatus = "paid"
 	Processing OrderStatus = "processing"
-	Delivered  OrderStatus = "delivered"
 	Cancelled  OrderStatus = "cancelled"
 )
 
@@ -23,9 +22,8 @@ type Order struct {
 	OrderItems      []OrderItem         `json:"order_items" bson:"order_items"`
 	TotalPrice      float64             `json:"total_price" bson:"total_price"`
 	Status          OrderStatus         `json:"status" bson:"status"`
-	Discount        *float64             `json:"discount" bson:"discount"`
+	Discount        *float64            `json:"discount" bson:"discount"`
 	ShippingAddress ShippingAddress     `json:"shipping_address" bson:"shipping_address"`
-	PaymentID       *primitive.ObjectID `json:"payment_id" bson:"payment_id"`
 	CustomerNote    *string             `json:"customer_note" bson:"customer_note"`
 	CreatedAt       time.Time           `json:"created_at" bson:"created_at"`
 	UpdatedAt       time.Time           `json:"updated_at" bson:"updated_at"`

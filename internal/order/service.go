@@ -14,6 +14,9 @@ import (
 type OrderService interface {
 	CreateOrder(ctx context.Context, req *CreateOrderRequest) error
 	GetAllOrders(ctx context.Context) ([]Order, error)
+	GetOrderByID(ctx context.Context, id string) (*Order, error)
+	UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error
+	DeleteOrder(ctx context.Context, id string) error
 }
 
 type orderService struct {
@@ -117,4 +120,48 @@ func (s *orderService) generateOrderCode() string {
 
 func (s *orderService) GetAllOrders(ctx context.Context) ([]Order, error) {
 	return s.orderRepo.FindAll(ctx)
+}
+
+func (s *orderService) GetOrderByID(ctx context.Context, id string) (*Order, error) {
+
+	if id == "" {
+		return nil, fmt.Errorf("id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid id: %v", err)
+	}
+
+	return s.orderRepo.FindByID(ctx, objectID)
+}
+
+func (s *orderService) UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error {
+
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %v", err)
+	}
+
+	return s.orderRepo.UpdateByID(ctx, objectID, req.Status)
+	
+}
+
+func (s *orderService) DeleteOrder(ctx context.Context, id string) error {
+
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid id: %v", err)
+	}
+
+	return s.orderRepo.DeleteByID(ctx, objectID)
+	
 }

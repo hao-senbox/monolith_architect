@@ -7,3 +7,7 @@ type CreateOrderRequest struct {
 	Phone  string `json:"phone" bson:"phone"`
 	Address string `json:"address" bson:"address"`
 }
+
+type UpdateOrderRequest struct {
+	Status string `json:"status" bson:"status"`
+}
