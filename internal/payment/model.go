@@ -14,7 +14,6 @@ const (
 	Failed    PaymentStatus = "failed"
 	Cancelled PaymentStatus = "cancelled"
 )
-
 type Payment struct {
 	ID                  primitive.ObjectID `json:"id" bson:"_id"`
 	OrderID             primitive.ObjectID `json:"order_id" bson:"order_id"`

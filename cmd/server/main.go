@@ -8,6 +8,7 @@ import (
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/category"
 	"modular_monolith/internal/order"
+	"modular_monolith/internal/payment"
 	"modular_monolith/internal/product"
 	"modular_monolith/internal/profile"
 	review "modular_monolith/internal/reviews"
@@ -97,6 +98,12 @@ func main() {
 	ordersService := order.NewOrderService(ordersRepository, cartsService)
 	ordersHandler := order.NewOrderHandler(ordersService)
 
+	payments := mongoClient.Database(cfg.MongoDB).Collection("payments")
+	paymentsRepository := payment.NewPaymentRepository(payments)
+	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository)
+	paymentsHandler := payment.NewPaymentHandler(paymentsService)
+
+	payment.RegisterRoutes(r, paymentsHandler)
 	order.RegisterRoutes(r, ordersHandler)
 	review.RegisterRoutes(r, reviewsHandler)
 	user.RegisterRoutes(r, userHandler)
