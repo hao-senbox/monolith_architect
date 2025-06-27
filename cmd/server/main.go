@@ -7,6 +7,7 @@ import (
 	"modular_monolith/helper"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/category"
+	"modular_monolith/internal/coupon"
 	"modular_monolith/internal/order"
 	"modular_monolith/internal/payment"
 	"modular_monolith/internal/product"
@@ -103,6 +104,12 @@ func main() {
 	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository)
 	paymentsHandler := payment.NewPaymentHandler(paymentsService)
 
+	coupons := mongoClient.Database(cfg.MongoDB).Collection("coupons")
+	couponsRepository := coupon.NewCouponRepository(coupons)
+	couponsService := coupon.NewCouponService(couponsRepository)
+	couponsHandler := coupon.NewCouponHandler(couponsService)
+
+	coupon.RegisterRoutes(r, couponsHandler)
 	payment.RegisterRoutes(r, paymentsHandler)
 	order.RegisterRoutes(r, ordersHandler)
 	review.RegisterRoutes(r, reviewsHandler)
