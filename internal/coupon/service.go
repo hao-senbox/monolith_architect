@@ -3,6 +3,7 @@ package coupon
 import (
 	"fmt"
 	"math/rand"
+	"modular_monolith/internal/user"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,20 +12,22 @@ import (
 
 type CouponService interface {
 	CreateCoupon(c *gin.Context, req *CreateCouponRequest) error
-	GetAllCoupons(c *gin.Context) ([]*Coupon, error)
-	GetCouponByCode(c *gin.Context, code string) (*Coupon, error)
-	GetCouponByUserID(c *gin.Context, userID string) ([]*Coupon, error)
+	GetAllCoupons(c *gin.Context) ([]*CouponResponse, error)
+	GetCouponByCode(c *gin.Context, code string) (*CouponResponse, error)
+	GetCouponByUserID(c *gin.Context, userID string) ([]*CouponResponse, error)
 	CanUseCoupon(c *gin.Context, req *CanUseCouponRequest) (*Coupon, error)
 	DeleteCoupon(c *gin.Context, id string) error
 }
 
 type couponService struct {
 	couponRepository CouponRepository
+	userService      user.UserService
 }
 
-func NewCouponService(couponRepository CouponRepository) CouponService {
+func NewCouponService(couponRepository CouponRepository, userService user.UserService) CouponService {
 	return &couponService{
 		couponRepository: couponRepository,
+		userService:      userService,
 	}
 }
 
@@ -107,9 +110,28 @@ func (s *couponService) CreateCoupon(c *gin.Context, req *CreateCouponRequest) e
 
 }
 
-func (s *couponService) GetAllCoupons(c *gin.Context) ([]*Coupon, error) {
-	return s.couponRepository.FindAll(c)
+func (s *couponService) GetAllCoupons(c *gin.Context) ([]*CouponResponse, error) {
+
+	coupons, err := s.couponRepository.FindAll(c)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*CouponResponse
+
+	for _, coupon := range coupons {
+
+		result, err := s.getUserInfor(c, coupon)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
 }
+
 
 func (s *couponService) generateCodeCoupon(length int) string {
 
@@ -124,16 +146,27 @@ func (s *couponService) generateCodeCoupon(length int) string {
 	return string(b)
 }
 
-func (s *couponService) GetCouponByCode(c *gin.Context, code string) (*Coupon, error) {
+func (s *couponService) GetCouponByCode(c *gin.Context, code string) (*CouponResponse, error) {
 
 	if code == "" {
 		return nil, fmt.Errorf("code is required")
 	}
 
-	return s.couponRepository.FindByCode(c, code)
+	coupon, err := s.couponRepository.FindByCode(c, code)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := s.getUserInfor(c, coupon)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
 }
 
-func (s *couponService) GetCouponByUserID(c *gin.Context, userID string) ([]*Coupon, error) {
+func (s *couponService) GetCouponByUserID(c *gin.Context, userID string) ([]*CouponResponse, error) {
 
 	if userID == "" {
 		return nil, fmt.Errorf("id is required")
@@ -144,8 +177,24 @@ func (s *couponService) GetCouponByUserID(c *gin.Context, userID string) ([]*Cou
 		return nil, fmt.Errorf("invalid id: %v", err)
 	}
 
-	return s.couponRepository.FindAllCouponsByUserID(c, objectID)
+	var results []*CouponResponse
 
+	coupon, err := s.couponRepository.FindAllCouponsByUserID(c, objectID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, coupon := range coupon {
+
+		result, err := s.getUserInfor(c, coupon)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
 }
 
 func (s *couponService) CanUseCoupon(c *gin.Context, req *CanUseCouponRequest) (*Coupon, error) {
@@ -223,7 +272,7 @@ func (s *couponService) canUseCoupon(userID primitive.ObjectID, coupon Coupon) (
 }
 
 func (s *couponService) DeleteCoupon(c *gin.Context, id string) error {
-	
+
 	if id == "" {
 		return fmt.Errorf("id is required")
 	}
@@ -234,5 +283,46 @@ func (s *couponService) DeleteCoupon(c *gin.Context, id string) error {
 	}
 
 	return s.couponRepository.Delete(c, objectID)
-	
+
+}
+
+func (s *couponService) getUserInfor(c *gin.Context, coupon *Coupon) (*CouponResponse, error) {
+
+	var userUsed []*UserInfor
+	for _, userID := range coupon.UserIsUsed {
+		user, err := s.userService.GetUserByID(c, userID.Hex())
+		if err != nil {
+			return nil, fmt.Errorf("cannot get user from UserIsUsed: %w", err)
+		}
+		userUsed = append(userUsed, &UserInfor{
+			ID:       userID,
+			FullName: user.FirstName + user.LastName,
+		})
+	}
+
+	var allowedUsers []*UserInfor
+	for _, userID := range coupon.AllowedUsers {
+		user, err := s.userService.GetUserByID(c, userID.Hex())
+		if err != nil {
+			return nil, fmt.Errorf("cannot get user from AllowedUsers: %w", err)
+		}
+		allowedUsers = append(allowedUsers, &UserInfor{
+			ID:       userID,
+			FullName: user.FirstName + user.LastName,
+		})
+	}
+
+	return &CouponResponse{
+		ID:           coupon.ID,
+		Name:         coupon.Name,
+		CodeCoupon:   coupon.CodeCoupon,
+		Discount:     coupon.Discount,
+		MaximumUse:   coupon.MaximumUse,
+		UserIsUsed:   userUsed,
+		AllowedUsers: allowedUsers,
+		Type:         coupon.Type,
+		ExpiredAt:    coupon.ExpiredAt,
+		CreatedAt:    coupon.CreatedAt,
+		UpdatedAt:    coupon.UpdatedAt,
+	}, nil
 }

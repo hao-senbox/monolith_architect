@@ -106,7 +106,7 @@ func main() {
 
 	coupons := mongoClient.Database(cfg.MongoDB).Collection("coupons")
 	couponsRepository := coupon.NewCouponRepository(coupons)
-	couponsService := coupon.NewCouponService(couponsRepository)
+	couponsService := coupon.NewCouponService(couponsRepository, userService)
 	couponsHandler := coupon.NewCouponHandler(couponsService)
 
 	coupon.RegisterRoutes(r, couponsHandler)

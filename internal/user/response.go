@@ -7,11 +7,13 @@ import (
 )
 
 type UserWithProfile struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Email    string             `bson:"email,omitempty" json:"email"`
-	Phone    string             `bson:"phone,omitempty" json:"phone"`
-	UserType string             `bson:"user_type,omitempty" json:"user_type"`
-	Profile  *Profile           `bson:"profile,omitempty" json:"profile,omitempty"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Email     string             `bson:"email,omitempty" json:"email"`
+	FirstName string             `bson:"first_name,omitempty" json:"first_name"`
+	LastName  string             `bson:"last_name,omitempty" json:"last_name"`
+	Phone     string             `bson:"phone,omitempty" json:"phone"`
+	UserType  string             `bson:"user_type,omitempty" json:"user_type"`
+	Profile   *Profile           `bson:"profile,omitempty" json:"profile,omitempty"`
 }
 
 type Profile struct {

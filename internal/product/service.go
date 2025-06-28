@@ -82,10 +82,7 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-		sizes = append(sizes, SizeOptions{
-			Size:  s.Size,
-			Stock: s.Stock,
-		})
+		sizes = append(sizes, SizeOptions(s))
 	}
 
 	// Create product object
@@ -139,8 +136,6 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 		})
 	}
 	product.SubImages = subImages
-
-	fmt.Printf("Product: %+v\n", product)
 
 	return s.repository.Create(ctx, product)
 }
@@ -270,10 +265,7 @@ func (s *productService) UpdateProduct(ctx context.Context, id string, req *Upda
 			return fmt.Errorf("invalid stock for size option at index %d", i)
 		}
 
-		sizes = append(sizes, SizeOptions{
-			Size:  s.Size,
-			Stock: s.Stock,
-		})
+		sizes = append(sizes, SizeOptions(s))
 	}
 
 	// Update product object

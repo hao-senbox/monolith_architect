@@ -105,3 +105,7 @@ func (h *CouponHandler) DeleteCoupon(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 	
 }
+
+func (h *CouponHandler) UpdateCoupon(c *gin.Context) {
+	
+}
