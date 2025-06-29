@@ -29,13 +29,13 @@ type UserService interface {
 }
 
 type userService struct {
-	repository UserRepository
+	repository     UserRepository
 	profileService profile.ProfileService
 }
 
 func NewUserService(repository UserRepository, profileService profile.ProfileService) UserService {
 	return &userService{
-		repository: repository,
+		repository:     repository,
 		profileService: profileService,
 	}
 }
@@ -92,7 +92,6 @@ func (s *userService) GetUserByID(ctx context.Context, userID string) (*UserWith
 
 }
 
-
 func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*User, error) {
 	fmt.Printf("RegisterUser: %+v\n", req)
 	if req.Email == "" {
@@ -101,7 +100,7 @@ func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 
 	if req.Phone == "" {
 		return nil, fmt.Errorf("phone is required")
-	}	
+	}
 
 	if req.Password == "" {
 		return nil, fmt.Errorf("password is required")
@@ -161,24 +160,23 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-
 	token, refreshToken := s.GenerateToken(user.ID.String())
-	
+
 	updateFields := bson.M{
 		"token":        token,
-		"refreshToken": refreshToken,
+		"refresh_token": refreshToken,
 		"updatedAt":    time.Now().Format(time.RFC3339),
 	}
-	
+
 	err = s.repository.UpdateByID(ctx, user.ID, updateFields)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user tokens: %w", err)
 	}
-	
+
 	user.Token = token
 	user.RefreshToken = refreshToken
 	user.Password = "" // Don't return the password
-	
+
 	return user, nil
 }
 
@@ -286,22 +284,22 @@ func (s *userService) LogoutUser(ctx context.Context, userID string) error {
 		userID = strings.TrimPrefix(userID, "ObjectID(\"")
 		userID = strings.TrimSuffix(userID, "\")")
 	}
-	
+
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return err
 	}
-	
+
 	updateFields := bson.M{
-		"token":        "",
-		"refreshToken": "",
-		"updatedAt":    time.Now().Format(time.RFC3339),
+		"token":         "",
+		"refresh_token": "",
+		"updated_at":    time.Now().Format(time.RFC3339),
 	}
-	
+
 	err = s.repository.UpdateByID(ctx, objectID, updateFields)
 	if err != nil {
 		return fmt.Errorf("failed to update user tokens: %w", err)
 	}
-	
+
 	return nil
 }
