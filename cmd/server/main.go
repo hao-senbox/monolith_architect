@@ -15,6 +15,7 @@ import (
 	review "modular_monolith/internal/reviews"
 	"modular_monolith/internal/user"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -55,17 +56,54 @@ func main() {
 	}()
 
 	r := gin.Default()
+	r.Use(func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
+		log.Printf("Request from origin: %s", origin)
+		c.Next()
+	})
+
+	// Cấu hình CORS với nhiều tùy chọn
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"https://haovo2007.github.io",
-			"https://haovo2007.github.io/ecommerce_fe",
+		AllowOriginFunc: func(origin string) bool {
+			allowedOrigins := []string{
+				"https://haovo2007.github.io",
+				"https://haovo2007.github.io/ecommerce_fe",
+			}
+
+			log.Printf("Checking origin: %s", origin)
+
+			// Kiểm tra exact match
+			for _, allowed := range allowedOrigins {
+				if origin == allowed {
+					log.Printf("Origin %s matched exactly", origin)
+					return true
+				}
+			}
+
+			// Kiểm tra prefix match cho GitHub Pages
+			if strings.HasPrefix(origin, "https://haovo2007.github.io") {
+				log.Printf("Origin %s matched with prefix", origin)
+				return true
+			}
+
+			log.Printf("Origin %s not allowed", origin)
+			return false
 		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Thêm preflight handler cho OPTIONS requests
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Accept, X-Requested-With")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Status(200)
+	})
 
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
 	profileRepository := profile.NewProfileRepository(profilesCollection)
