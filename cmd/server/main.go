@@ -57,8 +57,9 @@ func main() {
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
-		AllowOriginFunc: func(origin string) bool {
-			return strings.HasPrefix(origin, "https://haovo2007.github.io")
+		AllowOrigins: []string{
+			"https://haovo2007.github.io",
+			"https://haovo2007.github.io/ecommerce_fe",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
