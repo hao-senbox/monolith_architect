@@ -15,10 +15,8 @@ import (
 	review "modular_monolith/internal/reviews"
 	"modular_monolith/internal/user"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
