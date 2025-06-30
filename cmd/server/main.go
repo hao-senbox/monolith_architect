@@ -58,51 +58,37 @@ func main() {
 	r := gin.Default()
 	r.Use(func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		log.Printf("Request from origin: %s", origin)
+		log.Printf("Request from origin: '%s'", origin)
+		log.Printf("Request method: %s", c.Request.Method)
+		log.Printf("Request path: %s", c.Request.URL.Path)
 		c.Next()
 	})
 
-	// Cấu hình CORS với nhiều tùy chọn
-	r.Use(cors.New(cors.Config{
-		AllowOriginFunc: func(origin string) bool {
-			allowedOrigins := []string{
-				"https://haovo2007.github.io",
-				"https://haovo2007.github.io/ecommerce_fe",
-			}
+	// Cấu hình CORS đơn giản - cho phép tất cả để test
+	r.Use(func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
 
-			log.Printf("Checking origin: %s", origin)
+		// Nếu có origin header, cho phép nó
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+		} else {
+			// Fallback cho các request không có origin
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
 
-			// Kiểm tra exact match
-			for _, allowed := range allowedOrigins {
-				if origin == allowed {
-					log.Printf("Origin %s matched exactly", origin)
-					return true
-				}
-			}
-
-			// Kiểm tra prefix match cho GitHub Pages
-			if strings.HasPrefix(origin, "https://haovo2007.github.io") {
-				log.Printf("Origin %s matched with prefix", origin)
-				return true
-			}
-
-			log.Printf("Origin %s not allowed", origin)
-			return false
-		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
-
-	// Thêm preflight handler cho OPTIONS requests
-	r.OPTIONS("/*path", func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Accept, X-Requested-With")
 		c.Header("Access-Control-Allow-Credentials", "true")
-		c.Status(200)
+		c.Header("Access-Control-Max-Age", "86400")
+
+		// Handle preflight OPTIONS request
+		if c.Request.Method == "OPTIONS" {
+			log.Printf("Handling OPTIONS preflight request")
+			c.AbortWithStatus(200)
+			return
+		}
+
+		c.Next()
 	})
 
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
