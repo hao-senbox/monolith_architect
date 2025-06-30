@@ -15,7 +15,6 @@ import (
 	review "modular_monolith/internal/reviews"
 	"modular_monolith/internal/user"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -67,7 +66,6 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
-	
 
 	profilesCollection := mongoClient.Database(cfg.MongoDB).Collection("profiles")
 	profileRepository := profile.NewProfileRepository(profilesCollection)
