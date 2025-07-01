@@ -3,6 +3,8 @@ package category
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -45,6 +47,8 @@ func (s *categoryService) CreateCategory(ctx context.Context, req *CreateCategor
 	category := Category{
 		CategoryName: req.CategoryName,
 		ParentID:     parentID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	return s.categoryRepository.Create(ctx, &category)
@@ -96,6 +100,7 @@ func (s *categoryService) UpdateCategory(ctx context.Context, req *UpdateCategor
 		ID:           objectID,
 		CategoryName: req.CategoryName,
 		ParentID:     parentID,
+		UpdatedAt:    time.Now(),
 	}
 
 	return s.categoryRepository.UpdateByID(ctx, &category, objectID)
