@@ -64,22 +64,12 @@ func main() {
 
 	// Cấu hình CORS đơn giản - cho phép tất cả để test
 	r.Use(func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-
-		// Nếu có origin header, cho phép nó
-		if origin != "" {
-			c.Header("Access-Control-Allow-Origin", origin)
-		} else {
-			// Fallback cho các request không có origin
-			c.Header("Access-Control-Allow-Origin", "*")
-		}
-
+		
+		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Accept, X-Requested-With")
-		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Max-Age", "86400")
 
-		// Handle preflight OPTIONS request
 		if c.Request.Method == "OPTIONS" {
 			log.Printf("Handling OPTIONS preflight request")
 			c.AbortWithStatus(200)
