@@ -27,7 +27,7 @@ type ReviewResponse struct {
 type UserInfo struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id"`
 	FullName  string             `json:"full_name" bson:"full_name"`
-	Avatar    string             `json:"avatar" bson:"avatar"`
+	Avatar    *string             `json:"avatar" bson:"avatar"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 }

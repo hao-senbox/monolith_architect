@@ -90,6 +90,11 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 		if err != nil {
 			return nil, err
 		}
+		
+		var avatar *string
+		if user.Profile != nil {
+			avatar = &user.Profile.Avatar
+		}
 
 		reviews = append(reviews, &ReviewResponse{
 			ID:        v.ID,
@@ -98,8 +103,8 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 			Review:    v.Review,
 			UserInfo: UserInfo{
 				ID:       user.ID,
-				FullName: user.Profile.FullName,
-				Avatar:   user.Profile.Avatar,
+				FullName: user.LastName + user.FirstName,
+				Avatar:   avatar,
 			},
 			CreatedAt: v.CreatedAt,
 			UpdatedAt: v.UpdatedAt,
@@ -141,16 +146,21 @@ func (r *reviewService) GetReviewByID(ctx context.Context, id string) (*ReviewRe
 		return nil, err
 	}
 
+	var avatar *string
+	if user.Profile != nil {
+		avatar = &user.Profile.Avatar
+	}
+
 	reviewRes := &ReviewResponse{
 		ID:        review.ID,
 		ProductID: review.ProductID,
 		Rating:    review.Rating,
 		Review:    review.Review,
-		UserInfo: UserInfo{
-			ID:       user.ID,
-			FullName: user.Profile.FullName,
-			Avatar:   user.Profile.Avatar,
-		},
+					UserInfo: UserInfo{
+				ID:       user.ID,
+				FullName: user.LastName + user.FirstName,
+				Avatar:   avatar,
+			},
 		CreatedAt: review.CreatedAt,
 		UpdatedAt: review.UpdatedAt,
 	}
