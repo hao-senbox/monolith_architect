@@ -117,7 +117,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 		return fmt.Errorf("address is required")
 	}
 
-	var avatarURL string
+	var avatarURL, publicID string
 
 	if file != nil {
 		tempPath := "/tmp/" + file.Filename
@@ -131,12 +131,13 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 			return fmt.Errorf("failed to upload to Cloudinary: %w", err)
 		}
 
-		avatarURL, _, err = s.cloudUploader.UploadImage(ctx, tempPath, "profiles")
+		avatarURL, publicID, err = s.cloudUploader.UploadImage(ctx, tempPath, "profiles")
 		if err != nil {
 			return fmt.Errorf("failed to upload to Cloudinary: %w", err)
 		}
 	} else {
 		avatarURL = existingUser.Avatar
+		publicID = existingUser.PublicID
 	}
 
 	profile := &Profile{
@@ -146,7 +147,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 		BirthDay: birthDay,
 		Avatar:   avatarURL,
 		Address:  req.Address,
-		PublicID: existingUser.PublicID,
+		PublicID: publicID,
 		Bio:      &req.Bio,
 	}
 

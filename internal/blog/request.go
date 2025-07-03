@@ -5,3 +5,9 @@ type CreateBlogRequest struct {
 	Title   string `json:"title" bson:"title"`
 	Content string `json:"content" bson:"content"`
 }
+
+type UpdateBlogRequest struct {
+	UserID  string `json:"user_id" bson:"user_id"`
+	Title   string `json:"title" bson:"title"`
+	Content string `json:"content" bson:"content"`
+}
