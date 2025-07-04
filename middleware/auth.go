@@ -15,13 +15,6 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 
-		origin := c.GetHeader("Origin")
-		if origin == "http://127.0.0.1:5500" || origin == "https://monolith-architect.onrender.com" {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Vary", "Origin")
-			c.Header("Access-Control-Allow-Credentials", "true")
-		}
-
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
