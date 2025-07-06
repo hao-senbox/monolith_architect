@@ -279,12 +279,7 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 }
 
 func (s *userService) LogoutUser(ctx context.Context, userID string) error {
-
-	if strings.HasPrefix(userID, "ObjectID(") {
-		userID = strings.TrimPrefix(userID, "ObjectID(\"")
-		userID = strings.TrimSuffix(userID, "\")")
-	}
-
+	
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return err
