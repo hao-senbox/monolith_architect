@@ -7,7 +7,6 @@ import (
 	"log"
 	"modular_monolith/internal/profile"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -163,9 +162,9 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 	token, refreshToken := s.GenerateToken(user.ID.Hex())
 
 	updateFields := bson.M{
-		"token":        token,
+		"token":         token,
 		"refresh_token": refreshToken,
-		"updatedAt":    time.Now().Format(time.RFC3339),
+		"updatedAt":     time.Now().Format(time.RFC3339),
 	}
 
 	err = s.repository.UpdateByID(ctx, user.ID, updateFields)
@@ -279,7 +278,7 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 }
 
 func (s *userService) LogoutUser(ctx context.Context, userID string) error {
-	
+
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return err
