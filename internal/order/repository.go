@@ -9,7 +9,7 @@ import (
 )
 
 type OrderRepository interface{
-	Create(ctx context.Context, order *Order) error
+	Create(ctx context.Context, order *Order) (string, error)
 	FindAll(ctx context.Context) ([]Order, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Order, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, status string) error
@@ -24,9 +24,14 @@ func NewOrderRepository(collection *mongo.Collection) OrderRepository {
 	return &orderRepository{collection: collection}
 }
 
-func (r *orderRepository) Create(ctx context.Context, order *Order) error {
-	_, err := r.collection.InsertOne(ctx, order)
-	return err
+func (r *orderRepository) Create(ctx context.Context, order *Order) (string, error) {
+	result, err := r.collection.InsertOne(ctx, order)
+	if err != nil {
+		return "", err
+	}
+
+	id := result.InsertedID.(primitive.ObjectID).Hex()
+	return id, err
 }
 
 func (r *orderRepository) FindAll(ctx context.Context) ([]Order, error) {

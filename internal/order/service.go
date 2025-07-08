@@ -12,7 +12,7 @@ import (
 )
 
 type OrderService interface {
-	CreateOrder(ctx context.Context, req *CreateOrderRequest) error
+	CreateOrder(ctx context.Context, req *CreateOrderRequest) (string, error)
 	GetAllOrders(ctx context.Context) ([]Order, error)
 	GetOrderByID(ctx context.Context, id string) (*Order, error)
 	UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error
@@ -31,32 +31,32 @@ func NewOrderService(orderRepo OrderRepository, cartService cart.CartService) Or
 	}
 }
 
-func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) error {
+func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (string, error) {
 
 	if req.UserID == "" {
-		return fmt.Errorf("user_id is required")
+		return "", fmt.Errorf("user_id is required")
 	}
 
 	if req.Address == "" {
-		return fmt.Errorf("address is required")
+		return "", fmt.Errorf("address is required")
 	}
 
 	if req.Email == "" {
-		return fmt.Errorf("email is required")
+		return "", fmt.Errorf("email is required")
 	}
 
 	if req.Name == "" {
-		return fmt.Errorf("name is required")
+		return "", fmt.Errorf("name is required")
 	}
 
 	userID, err := primitive.ObjectIDFromHex(req.UserID)
 	if err != nil {
-		return fmt.Errorf("invalid user_id: %v", err)
+		return "", fmt.Errorf("invalid user_id: %v", err)
 	}
 
 	carts, err := s.cartService.GetCartByUserID(ctx, req.UserID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var orderItems []OrderItem
@@ -90,16 +90,17 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		UpdatedAt:  time.Now(),
 	}
 
-	if err := s.orderRepo.Create(ctx, order); err != nil {
-		return err
+	id, err := s.orderRepo.Create(ctx, order)
+	if err != nil {
+		return "", err
 	}
 
 	err = s.cartService.DeleteCart(ctx, req.UserID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return id, nil
 
 }
 
