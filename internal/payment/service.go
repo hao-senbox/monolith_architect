@@ -54,7 +54,7 @@ func (s *paymentService) CreatePaymentIntent(ctx context.Context, req *CreatePay
 		return nil, fmt.Errorf("payment already exists")
 	}
 
-	amount := int64(existingOrder.TotalPrice * 100)
+	amount := int64(existingOrder.TotalPrice)
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(amount),
 		Currency: stripe.String("usd"),
