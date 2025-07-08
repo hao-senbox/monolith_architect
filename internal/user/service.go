@@ -7,7 +7,6 @@ import (
 	"log"
 	"modular_monolith/internal/profile"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -93,7 +92,7 @@ func (s *userService) GetUserByID(ctx context.Context, userID string) (*UserWith
 }
 
 func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*User, error) {
-	fmt.Printf("RegisterUser: %+v\n", req)
+
 	if req.Email == "" {
 		return nil, fmt.Errorf("email is required")
 	}
@@ -118,7 +117,7 @@ func (s *userService) RegisterUser(ctx context.Context, req *RegisterRequest) (*
 
 	hashedPassword := s.HashPassword(req.Password)
 	newUserID := primitive.NewObjectID()
-	token, refreshToken := s.GenerateToken(newUserID.String())
+	token, refreshToken := s.GenerateToken(newUserID.Hex())
 
 	now := time.Now().Format(time.RFC3339)
 	user = &User{
@@ -160,12 +159,12 @@ func (s *userService) LoginUser(ctx context.Context, email, password string) (*U
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	token, refreshToken := s.GenerateToken(user.ID.String())
+	token, refreshToken := s.GenerateToken(user.ID.Hex())
 
 	updateFields := bson.M{
-		"token":        token,
+		"token":         token,
 		"refresh_token": refreshToken,
-		"updatedAt":    time.Now().Format(time.RFC3339),
+		"updatedAt":     time.Now().Format(time.RFC3339),
 	}
 
 	err = s.repository.UpdateByID(ctx, user.ID, updateFields)
@@ -279,11 +278,6 @@ func (s *userService) RefreshToken(refreshToken string) (string, string, error) 
 }
 
 func (s *userService) LogoutUser(ctx context.Context, userID string) error {
-
-	if strings.HasPrefix(userID, "ObjectID(") {
-		userID = strings.TrimPrefix(userID, "ObjectID(\"")
-		userID = strings.TrimSuffix(userID, "\")")
-	}
 
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {

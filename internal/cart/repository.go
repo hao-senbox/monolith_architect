@@ -15,7 +15,7 @@ type CartRepository interface {
 	Create(ctx context.Context, cart *Cart) error
 	FindCartByUserID(ctx context.Context, userID primitive.ObjectID) (*Cart, error)
 	AddToCart(ctx context.Context, cartItem *CartItem, userID primitive.ObjectID) error
-	UpdateCart(ctx context.Context, productID primitive.ObjectID, userID primitive.ObjectID, quantity int, types string) error
+	UpdateCart(ctx context.Context, productID primitive.ObjectID, userID primitive.ObjectID, quantity int, size string, types string) error
 	DeleteItemCart(ctx context.Context, productID primitive.ObjectID, userID primitive.ObjectID) error
 	DeleteCart(ctx context.Context, userID primitive.ObjectID) error
 }
@@ -117,7 +117,7 @@ func (r *cartRepository) updateCart(ctx context.Context, cart *Cart) error {
 
 }
 
-func (r *cartRepository) UpdateCart(ctx context.Context, productID primitive.ObjectID, userID primitive.ObjectID, quantity int, types string) error {
+func (r *cartRepository) UpdateCart(ctx context.Context, productID primitive.ObjectID, userID primitive.ObjectID, quantity int, size string, types string) error {
 	cart, err := r.FindCartByUserID(ctx, userID)
 	if err != nil {
 		return err
@@ -125,14 +125,14 @@ func (r *cartRepository) UpdateCart(ctx context.Context, productID primitive.Obj
 
 	if types == "add" {
 		for i, item := range cart.CartItems {
-			if item.ProductID == productID {
+			if item.ProductID == productID && item.Size == size {
 				cart.CartItems[i].Quantity += quantity
 				break
 			}
 		}
 	} else if types == "remove" {
 		for i, item := range cart.CartItems {
-			if item.ProductID == productID {
+			if item.ProductID == productID && item.Size == size {
 				if cart.CartItems[i].Quantity > quantity {
 					cart.CartItems[i].Quantity -= quantity
 				} else {

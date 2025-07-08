@@ -102,6 +102,10 @@ func (s *cartService) UpdateCart(c context.Context, req *UpdateCartRequest) erro
 		return fmt.Errorf("types is required")
 	}
 
+	if req.Size == "" {
+		return fmt.Errorf("size is required")
+	}
+
 	objectProductID, err := primitive.ObjectIDFromHex(req.ProductID)
 	if err != nil {
 		return fmt.Errorf("invalid product id: %v", err)
@@ -112,7 +116,7 @@ func (s *cartService) UpdateCart(c context.Context, req *UpdateCartRequest) erro
 		return fmt.Errorf("invalid user id: %v", err)
 	}
 
-	return s.repo.UpdateCart(c, objectProductID, objectUserID, req.Quantity, req.Types)
+	return s.repo.UpdateCart(c, objectProductID, objectUserID, req.Quantity, req.Size, req.Types)
 
 }
 
