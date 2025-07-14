@@ -127,6 +127,10 @@ func (s *paymentService) ConfirmPayment(ctx context.Context, paymentIntentID str
 	if err != nil {
 		return err
 	}
+	err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(newStatus))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
