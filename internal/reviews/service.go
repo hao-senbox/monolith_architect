@@ -123,8 +123,6 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 			CreatedAt: v.CreatedAt,
 			UpdatedAt: v.UpdatedAt,
 		})
-
-		totalRating += v.Rating
 	}
 
 	average := 0.0
