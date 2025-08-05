@@ -130,7 +130,7 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 		average = float64(totalRating) / float64(len(reviewList))
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := 1; i <= 5; i++ {
 		count := ratingCount[i]
 		percentValue := 0
 		if len(reviewList) > 0 {
