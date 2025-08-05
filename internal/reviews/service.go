@@ -3,9 +3,9 @@ package reviews
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"modular_monolith/internal/user"
 	"time"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ReviewService interface {
@@ -72,6 +72,15 @@ func (r *reviewService) CreateReview(ctx context.Context, req *CreateReviewReque
 
 func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*ReviewsResponse, error) {
 
+	ratingCount := map[int]int{
+		1: 0,
+		2: 0,
+		3: 0,
+		4: 0,
+		5: 0,
+	}
+
+	var percent []PercentRating
 	objectID, err := primitive.ObjectIDFromHex(productID)
 	if err != nil {
 		return nil, err
@@ -86,11 +95,16 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 	totalRating := 0
 
 	for _, v := range reviewList {
+
+		totalRating += v.Rating
+
+		ratingCount[v.Rating]++
+
 		user, err := r.userRepo.FindByID(ctx, v.UserID)
 		if err != nil {
 			return nil, err
 		}
-		
+
 		var avatar *string
 		if user.Profile != nil {
 			avatar = &user.Profile.Avatar
@@ -118,11 +132,25 @@ func (r *reviewService) GetAllReviews(ctx context.Context, productID string) (*R
 		average = float64(totalRating) / float64(len(reviewList))
 	}
 
+	for i := 0; i < 5; i++ {
+		count := ratingCount[i]
+		percentValue := 0
+		if len(reviewList) > 0 {
+			percentValue = int(float64(count) / float64(len(reviewList)) * 100)
+		}
+		percent = append(percent, PercentRating{
+			Rating:  i,
+			Count:   count,
+			Percent: fmt.Sprintf("%d%%", percentValue),
+		})
+	}
+
 	reviewsRes := &ReviewsResponse{
 		ReviewsResponse:   reviews,
 		TotalReviewsCount: len(reviews),
 		AvarageRating:     average,
 		CreatedAt:         time.Now(),
+		Percent:           percent,
 		UpdatedAt:         time.Now(),
 	}
 
@@ -156,11 +184,11 @@ func (r *reviewService) GetReviewByID(ctx context.Context, id string) (*ReviewRe
 		ProductID: review.ProductID,
 		Rating:    review.Rating,
 		Review:    review.Review,
-					UserInfo: UserInfo{
-				ID:       user.ID,
-				FullName: user.LastName + user.FirstName,
-				Avatar:   avatar,
-			},
+		UserInfo: UserInfo{
+			ID:       user.ID,
+			FullName: user.LastName + user.FirstName,
+			Avatar:   avatar,
+		},
 		CreatedAt: review.CreatedAt,
 		UpdatedAt: review.UpdatedAt,
 	}

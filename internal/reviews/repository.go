@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ReviewRepository interface {
@@ -35,8 +36,14 @@ func (r *reviewRepository) Create(ctx context.Context, review *Reviews) error {
 func (r *reviewRepository) FindAll(ctx context.Context, productID primitive.ObjectID) ([]*Reviews, error) {
 
 	var reviews []*Reviews
-	filter := bson.M{"product_id": productID}
-	cursor, err := r.collection.Find(ctx, filter)
+	filter := bson.M{
+		"product_id": productID,
+	}
+
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "created_at", Value: -1}})
+	
+	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +53,7 @@ func (r *reviewRepository) FindAll(ctx context.Context, productID primitive.Obje
 	}
 
 	return reviews, nil
-	
+
 }
 
 func (r *reviewRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*Reviews, error) {

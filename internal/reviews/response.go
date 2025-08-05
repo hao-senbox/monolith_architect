@@ -9,11 +9,17 @@ import (
 type ReviewsResponse struct {
 	ReviewsResponse   []*ReviewResponse `json:"reviews" bson:"reviews"`
 	TotalReviewsCount int               `json:"total_reviews_count" bson:"total_reviews_count"`
+	Percent []PercentRating `json:"percent" bson:"percent"`
 	AvarageRating     float64           `json:"average_rating" bson:"average_rating"`
 	CreatedAt         time.Time         `json:"created_at" bson:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at" bson:"updated_at"`
 }
 
+type PercentRating struct {
+	Percent string `json:"percent" bson:"percent"`
+	Rating int `json:"rating" bson:"rating"`
+	Count  int `json:"count" bson:"count"`
+}
 type ReviewResponse struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id"`
 	ProductID primitive.ObjectID `json:"product_id" bson:"product_id"`
