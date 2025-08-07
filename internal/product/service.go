@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"modular_monolith/helper"
+	"modular_monolith/internal/category"
 	"modular_monolith/internal/reviews"
 	"os"
 	"time"
@@ -13,25 +14,28 @@ import (
 
 type ProductService interface {
 	CreateProduct(ctx context.Context, req *CreateProductRequest, productFiles ProductFiles) error
-	GetAllProducts(ctx context.Context) ([]*Product, error)
-	GetProductByID(ctx context.Context, id string) (*Product, error)
+	GetAllProducts(ctx context.Context) ([]*ProductResponse, error)
+	GetProductByID(ctx context.Context, id string) (*ProductResponse, error)
 	UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error
 	DeleteProduct(ctx context.Context, id string) error
 }
 
 type productService struct {
-	repository    ProductRepository
-	reviewService reviews.ReviewService
-	cloudUploader *helper.CloudinaryUploader
+	repository      ProductRepository
+	reviewService   reviews.ReviewService
+	categoryService category.CategoryService
+	cloudUploader   *helper.CloudinaryUploader
 }
 
 func NewProductService(repository ProductRepository,
 	uploader *helper.CloudinaryUploader,
-	reviewService reviews.ReviewService) ProductService {
+	reviewService reviews.ReviewService,
+	categoryService category.CategoryService) ProductService {
 	return &productService{
-		repository:    repository,
-		cloudUploader: uploader,
-		reviewService: reviewService,
+		repository:      repository,
+		cloudUploader:   uploader,
+		reviewService:   reviewService,
+		categoryService: categoryService,
 	}
 }
 
@@ -140,11 +144,13 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 	return s.repository.Create(ctx, product)
 }
 
-func (s *productService) GetAllProducts(ctx context.Context) ([]*Product, error) {
+func (s *productService) GetAllProducts(ctx context.Context) ([]*ProductResponse, error) {
 	products, err := s.repository.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	var responses []*ProductResponse
 
 	for _, product := range products {
 		reviewResp, err := s.reviewService.GetAllReviews(ctx, product.ID.Hex())
@@ -154,24 +160,55 @@ func (s *productService) GetAllProducts(ctx context.Context) ([]*Product, error)
 
 		reviews := reviewResp.ReviewsResponse
 		totalRating := 0
-
 		for _, review := range reviews {
 			totalRating += review.Rating
 		}
 
+		var ratingAverage float64
 		if len(reviews) > 0 {
-			product.RatingAverage = float64(totalRating) / float64(len(reviews))
-		} else {
-			product.RatingAverage = 0
+			ratingAverage = float64(totalRating) / float64(len(reviews))
+		}
+		reviewsCount := len(reviews)
+
+		category, err := s.categoryService.GetCategory(ctx, product.CategoryID.Hex())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get category: %w", err)
 		}
 
-		product.ReviewsCount = len(reviews)
+		categoryData := CategoryResponse{
+			ID:           category.ID,
+			CategoryName: category.CategoryName,
+			ParentID:     category.ParentID,
+			CreatedAt:    category.CreatedAt,
+			UpdatedAt:    category.UpdatedAt,
+		}
+
+		resp := &ProductResponse{
+			ID:                 product.ID,
+			ProductName:        product.ProductName,
+			ProductDescription: product.ProductDescription,
+			Color:              product.Color,
+			Price:              product.Price,
+			Discount:           product.Discount,
+			Currency:           product.Currency,
+			Sizes:              product.Sizes,
+			Category:           categoryData,
+			MainImage:          product.MainImage,
+			SubImages:          product.SubImages,
+			RatingAverage:      ratingAverage,
+			ReviewsCount:       reviewsCount,
+			CreatedAt:          product.CreatedAt,
+			UpdatedAt:          product.UpdatedAt,
+		}
+
+		responses = append(responses, resp)
 	}
 
-	return products, nil
+	return responses, nil
 }
 
-func (s *productService) GetProductByID(ctx context.Context, id string) (*Product, error) {
+
+func (s *productService) GetProductByID(ctx context.Context, id string) (*ProductResponse, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -202,9 +239,40 @@ func (s *productService) GetProductByID(ctx context.Context, id string) (*Produc
 	}
 
 	product.ReviewsCount = len(reviews)
-	
-	return product, nil
-	
+
+	category, err := s.categoryService.GetCategory(ctx, product.CategoryID.Hex())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get category: %w", err)
+	}
+
+	categoryData := CategoryResponse{
+		ID:           category.ID,
+		CategoryName: category.CategoryName,
+		ParentID:     category.ParentID,
+		CreatedAt:    category.CreatedAt,
+		UpdatedAt:    category.UpdatedAt,
+	}
+
+	result := &ProductResponse{
+		ID:                 product.ID,
+		ProductName:        product.ProductName,
+		ProductDescription: product.ProductDescription,
+		Color:              product.Color,
+		Price:              product.Price,
+		Discount:           product.Discount,
+		Currency:           product.Currency,
+		Sizes:              product.Sizes,
+		Category:           categoryData,
+		MainImage:          product.MainImage,
+		SubImages:          product.SubImages,
+		RatingAverage:      product.RatingAverage,
+		ReviewsCount:       product.ReviewsCount,
+		CreatedAt:          product.CreatedAt,
+		UpdatedAt:          product.UpdatedAt,
+	}
+
+	return result, nil
+
 }
 
 func (s *productService) UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error {

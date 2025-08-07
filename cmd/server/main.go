@@ -102,7 +102,7 @@ func main() {
 
 	products := mongoClient.Database(cfg.MongoDB).Collection("products")
 	productsRepository := product.NewProductRepository(products)
-	productsService := product.NewProductService(productsRepository, cld, reviewsService)
+	productsService := product.NewProductService(productsRepository, cld, reviewsService, categoryService)
 	productsHandler := product.NewProductHandler(productsService)
 
 	carts := mongoClient.Database(cfg.MongoDB).Collection("carts")
