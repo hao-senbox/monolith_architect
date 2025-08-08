@@ -10,8 +10,9 @@ import (
 )
 
 type PaymentRepository interface {
-	Create(ctx context.Context, payment *Payment) error
+	Create(ctx context.Context, payment *Payment) (string, error)
 	FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*Payment, error)
+	FindByID(ctx context.Context, id primitive.ObjectID) (*Payment, error)
 	FindByStripePaymentID(ctx context.Context, stripePaymentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, paymentID primitive.ObjectID, status PaymentStatus) error
 }
@@ -26,14 +27,15 @@ func NewPaymentRepository(collection *mongo.Collection) PaymentRepository {
 	}
 }
 
-func (r *paymentRepository) Create(ctx context.Context, payment *Payment) error {
+func (r *paymentRepository) Create(ctx context.Context, payment *Payment) (string, error) {
 
-	_, err := r.collection.InsertOne(ctx, payment)
+	result, err := r.collection.InsertOne(ctx, payment)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	id := result.InsertedID.(primitive.ObjectID).Hex()
+	return id, nil
 
 }
 
@@ -79,4 +81,17 @@ func (r *paymentRepository) UpdateStatus(ctx context.Context, paymentID primitiv
 
 	return nil
 
+}
+
+func (r *paymentRepository) FindByID(ctx context.Context, id primitive.ObjectID) (*Payment, error) {
+
+	var payment Payment
+
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&payment)
+	if err != nil {
+		return nil, err
+	}
+
+	return &payment, nil
+	
 }

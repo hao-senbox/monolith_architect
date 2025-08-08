@@ -60,3 +60,71 @@ func (h *PaymentHandler) StripeWebhook(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 
 }
+
+func (h *PaymentHandler) CreateVNPayPayment(c *gin.Context) {
+
+	var req VNPayRequest 
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	clientIP := helper.GetClientIP(c)
+
+	paymentRes, err := h.PaymentService.CreateVNPayPayment(c, &req, clientIP)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", paymentRes)
+}
+
+func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) { 
+	
+	var callback VNPayCallback
+
+	if err := c.ShouldBind(&callback); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.PaymentService.HandleVNPayCallback(c, &callback)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	var redirectURL string
+	switch callback.ResponseCode {
+	case "00":
+		redirectURL = "/payment/success?txn_ref=" + callback.TransactionRef
+	case "24":
+		redirectURL = "/payment/cancelled?txn_ref=" + callback.TransactionRef
+	default:
+		redirectURL = "/payment/failed?txn_ref=" + callback.TransactionRef
+	}
+
+	c.Redirect(http.StatusSeeOther, redirectURL)
+
+}
+
+func (h *PaymentHandler) HandleVNPayIPN(c *gin.Context) {
+	
+	var callback VNPayCallback
+
+	if err := c.ShouldBind(&callback); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.PaymentService.HandleVNPayCallback(c, &callback)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+	
+}

@@ -117,7 +117,7 @@ func main() {
 
 	payments := mongoClient.Database(cfg.MongoDB).Collection("payments")
 	paymentsRepository := payment.NewPaymentRepository(payments)
-	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository)
+	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository, cfg.VNPayConfig)
 	paymentsHandler := payment.NewPaymentHandler(paymentsService)
 
 	coupons := mongoClient.Database(cfg.MongoDB).Collection("coupons")

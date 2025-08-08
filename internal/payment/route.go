@@ -7,7 +7,15 @@ import (
 func RegisterRoutes(r *gin.Engine, handler *PaymentHandler) {
 	paymentGroup := r.Group("/api/v1/payment")
 	{
+		// Stripe
 		paymentGroup.POST("/create-intent", handler.CreatePaymentIntent)
-		r.POST("/api/v1/payment/webhook", handler.StripeWebhook)
+		paymentGroup.POST("/webhook", handler.StripeWebhook)
+		// Stripe
+
+		// VNPay
+		paymentGroup.POST("/vnpay", handler.CreateVNPayPayment)
+		paymentGroup.POST("/vnpay/callback", handler.HandleVNPayCallback)
+		paymentGroup.POST("/vnpay/ipn", handler.HandleVNPayIPN)
+		// VNPay
 	}
 }

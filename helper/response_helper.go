@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,4 +33,21 @@ func SendError( c* gin.Context, statusCode int, err error, errorCode string) {
 		Error: err.Error(),
 		ErrorCode: errorCode,
 	})
+}
+
+func GetClientIP(c *gin.Context) string {
+
+	forwarded := c.GetHeader("X-Forwarded-For")
+	if forwarded != "" {
+
+		ips := strings.Split(forwarded, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	realIP := c.GetHeader("X-Real-IP")
+	if realIP != "" {
+		return realIP
+	}
+
+	return c.ClientIP()
 }

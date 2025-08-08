@@ -2,10 +2,18 @@ package payment
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"modular_monolith/config"
 	"modular_monolith/internal/order"
+	"net/url"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/stripe/stripe-go/v76"
@@ -18,18 +26,22 @@ type PaymentService interface {
 	CreatePaymentIntent(ctx context.Context, req *CreatePaymentIntentRequest) (*PaymentIntentResponse, error)
 	ConfirmPayment(ctx context.Context, paymentIntentID string) error
 	HandleWebhook(ctx context.Context, payload []byte, signature string) error
+	CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
+	HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error
 }
 
 type paymentService struct {
 	orderRepository   order.OrderRepository
 	paymentRepository PaymentRepository
+	config            config.VNPayConfig
 }
 
-func NewPaymentService(paymentRepository PaymentRepository, orderRepository order.OrderRepository) PaymentService {
+func NewPaymentService(paymentRepository PaymentRepository, orderRepository order.OrderRepository, config config.VNPayConfig) PaymentService {
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 	return &paymentService{
 		paymentRepository: paymentRepository,
 		orderRepository:   orderRepository,
+		config:            config,
 	}
 }
 
@@ -74,8 +86,8 @@ func (s *paymentService) CreatePaymentIntent(ctx context.Context, req *CreatePay
 	payment := &Payment{
 		ID:                  primitive.NewObjectID(),
 		OrderID:             objectID,
-		StripePaymentID:     pi.ID,
-		StripePaymentSecret: pi.ClientSecret,
+		StripePaymentID:     &pi.ID,
+		StripePaymentSecret: &pi.ClientSecret,
 		Amount:              existingOrder.TotalPrice,
 		Currency:            "usd",
 		Status:              Pending,
@@ -84,7 +96,7 @@ func (s *paymentService) CreatePaymentIntent(ctx context.Context, req *CreatePay
 		UpdateAt:            time.Now(),
 	}
 
-	err = s.paymentRepository.Create(ctx, payment)
+	_, err = s.paymentRepository.Create(ctx, payment)
 	if err != nil {
 		return nil, err
 	}
@@ -169,4 +181,184 @@ func (s *paymentService) HandleWebhook(ctx context.Context, payload []byte, sign
 
 	return nil
 
+}
+
+func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error) {
+
+	if req.OrderID == "" {
+		return "", fmt.Errorf("order id is required")
+	}
+
+	orderID, err := primitive.ObjectIDFromHex(req.OrderID)
+	if err != nil {
+		return "", fmt.Errorf("invalid order id: %v", err)
+	}
+
+	existingOrder, _ := s.orderRepository.FindByID(ctx, orderID)
+	if existingOrder == nil {
+		return "", fmt.Errorf("order not found")
+	}
+
+	existingPaymenr, _ := s.paymentRepository.FindByOrderID(ctx, orderID)
+	if existingPaymenr != nil {
+		return "", fmt.Errorf("payment already exists")
+	}
+
+	payment := &Payment{
+		ID:            primitive.NewObjectID(),
+		OrderID:       orderID,
+		Amount:        existingOrder.TotalPrice,
+		Currency:      "vn	d",
+		Status:        Pending,
+		PaymentMethod: "vnpay",
+		CreatedAt:     time.Now(),
+		UpdateAt:      time.Now(),
+	}
+
+	paymentID, err := s.paymentRepository.Create(ctx, payment)
+	if err != nil {
+		return "", err
+	}
+
+	params := s.buildVNPayParams(req, paymentID, existingOrder, clientIP)
+
+	secureHash := s.createSecureHash(params)
+
+	params["vnp_SecureHash"] = secureHash
+
+	paymentURL := s.buildPaymentURL(params)
+
+	return paymentURL, nil
+
+}
+
+func (s *paymentService) buildVNPayParams(req *VNPayRequest, paymentID string, order *order.Order, clientIP string) map[string]string {
+
+	now := time.Now()
+
+	params := map[string]string{
+		"vnp_Version":    s.config.Version,
+		"vnp_Command":    s.config.Command,
+		"vnp_TmnCode":    s.config.TmnCode,
+		"vnp_Amount":     strconv.FormatFloat(order.TotalPrice*100, 'f', 0, 64),
+		"vnp_CreateDate": now.Format("20060102150405"),
+		"vnp_CurrCode":   s.config.CurrCode,
+		"vnp_IpAddr":     clientIP,
+		"vnp_OrderType":  "other",
+		"vnp_Locale":     req.Locale,
+		"vnp_OrderInfo":  req.OrderInfo,
+		"vnp_ReturnUrl":  req.ReturnURL,
+		"vnp_ExpireDate": now.Add(15 * time.Minute).Format("20060102150405"),
+		"vnp_TxnRef":     paymentID,
+	}
+	if req.BankCode != "" {
+		params["vnp_BankCode"] = req.BankCode
+	}
+	return params
+
+}
+
+func (s *paymentService) createSecureHash(params map[string]string) string {
+
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		if k != "vnp_SecureHash" && k != "vnp_SecureHashType" {
+			keys = append(keys, k)
+		}
+	}
+
+	sort.Strings(keys)
+
+	var queryString strings.Builder
+	for i, key := range keys {
+		if i > 0 {
+			queryString.WriteString("&")
+		}
+		queryString.WriteString(key)
+		queryString.WriteString("=")
+		queryString.WriteString(url.QueryEscape(params[key]))
+	}
+
+	mac := hmac.New(sha512.New, []byte(s.config.HashSecret))
+	mac.Write([]byte(queryString.String()))
+
+	return hex.EncodeToString(mac.Sum(nil))
+
+}
+
+func (s *paymentService) buildPaymentURL(params map[string]string) string {
+
+	u, _ := url.Parse(s.config.PaymentUrl)
+
+	q := u.Query()
+
+	for key, value := range params {
+		q.Set(key, value)
+	}
+
+	u.RawQuery = q.Encode()
+
+	return u.String()
+}
+
+func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error {
+
+	isValid, err := s.VerifyCallback(callback)
+	if err != nil {
+		return fmt.Errorf("failed to verify callback: %w", err)
+	}
+
+	if !isValid {
+		return fmt.Errorf("invalid callback signature")
+	}
+
+	paymentID, err := primitive.ObjectIDFromHex(callback.TransactionRef)
+	if err != nil {
+		return fmt.Errorf("invalid payment id: %w", err)
+	}
+
+	payment, err := s.paymentRepository.FindByID(ctx, paymentID)
+	if err != nil {
+		return fmt.Errorf("payment not found: %w", err)
+	}
+
+	payment.VNPayTransactionNo = &callback.TransactionNo
+	payment.VNPayTransactionRef = &callback.TransactionRef
+	payment.VNPayResponseCode = &callback.ResponseCode
+	payment.VNPayBankCode = &callback.BankCode
+	payment.VNPayTransactionInfo = &callback.OrderInfo
+	payment.UpdateAt = time.Now()
+
+
+	switch callback.ResponseCode {
+	case "00":
+		payment.Status = Success
+	case "24":
+		payment.Status = Cancelled
+	default:
+		payment.Status = Failed
+	}
+
+	return s.paymentRepository.UpdateStatus(ctx, paymentID, payment.Status)
+}
+
+func (s *paymentService) VerifyCallback(callback *VNPayCallback) (bool, error) {
+
+	params := map[string]string{
+		"vnp_Amount":         callback.Amount,
+		"vnp_BankCode":       callback.BankCode,
+		"vnp_BankTranNo":     callback.BankTranNo,
+		"vnp_CardType":       callback.CardType,
+		"vnp_OrderInfo":      callback.OrderInfo,
+		"vnp_PayDate":        callback.PayDate,
+		"vnp_ResponseCode":   callback.ResponseCode,
+		"vnp_TmnCode":        callback.TmnCode,
+		"vnp_TransactionNo":  callback.TransactionNo,
+		"vnp_TxnRef":         callback.TransactionRef,
+		"vnp_SecureHashType": callback.SecureHashType,
+	}
+
+	expectedHash := s.createSecureHash(params)
+
+	return expectedHash == callback.SecureHash, nil
 }
