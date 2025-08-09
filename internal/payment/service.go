@@ -208,7 +208,7 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 		ID:            primitive.NewObjectID(),
 		OrderID:       orderID,
 		Amount:        existingOrder.TotalPrice,
-		Currency:      "vn	d",
+		Currency:      "vnd",
 		Status:        Pending,
 		PaymentMethod: "vnpay",
 		CreatedAt:     time.Now(),
@@ -259,31 +259,31 @@ func (s *paymentService) buildVNPayParams(req *VNPayRequest, paymentID string, o
 }
 
 func (s *paymentService) createSecureHash(params map[string]string) string {
+    keys := make([]string, 0, len(params))
+    for k := range params {
+        if k == "vnp_SecureHash" || k == "vnp_SecureHashType" {
+            continue
+        }
 
-	keys := make([]string, 0, len(params))
-	for k := range params {
-		if k != "vnp_SecureHash" && k != "vnp_SecureHashType" {
-			keys = append(keys, k)
-		}
-	}
+        if params[k] == "" {
+            continue
+        }
+        keys = append(keys, k)
+    }
+    sort.Strings(keys)
 
-	sort.Strings(keys)
-
-	var queryString strings.Builder
-	for i, key := range keys {
-		if i > 0 {
-			queryString.WriteString("&")
-		}
-		queryString.WriteString(key)
-		queryString.WriteString("=")
-		queryString.WriteString(url.QueryEscape(params[key]))
-	}
-
-	mac := hmac.New(sha512.New, []byte(s.config.HashSecret))
-	mac.Write([]byte(queryString.String()))
-
-	return hex.EncodeToString(mac.Sum(nil))
-
+    var b strings.Builder
+    for i, key := range keys {
+        if i > 0 {
+            b.WriteString("&")
+        }
+        b.WriteString(key)
+        b.WriteString("=")
+        b.WriteString(url.QueryEscape(params[key]))
+    }
+    mac := hmac.New(sha512.New, []byte(s.config.HashSecret))
+    mac.Write([]byte(b.String()))
+    return hex.EncodeToString(mac.Sum(nil))
 }
 
 func (s *paymentService) buildPaymentURL(params map[string]string) string {
@@ -344,21 +344,22 @@ func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPa
 
 func (s *paymentService) VerifyCallback(callback *VNPayCallback) (bool, error) {
 
-	params := map[string]string{
-		"vnp_Amount":         callback.Amount,
-		"vnp_BankCode":       callback.BankCode,
-		"vnp_BankTranNo":     callback.BankTranNo,
-		"vnp_CardType":       callback.CardType,
-		"vnp_OrderInfo":      callback.OrderInfo,
-		"vnp_PayDate":        callback.PayDate,
-		"vnp_ResponseCode":   callback.ResponseCode,
-		"vnp_TmnCode":        callback.TmnCode,
-		"vnp_TransactionNo":  callback.TransactionNo,
-		"vnp_TxnRef":         callback.TransactionRef,
-		"vnp_SecureHashType": callback.SecureHashType,
-	}
+    params := map[string]string{
+        "vnp_Amount":            callback.Amount,
+        "vnp_BankCode":          callback.BankCode,
+        "vnp_BankTranNo":        callback.BankTranNo,
+        "vnp_CardType":          callback.CardType,
+        "vnp_OrderInfo":         callback.OrderInfo,
+        "vnp_PayDate":           callback.PayDate,
+        "vnp_ResponseCode":      callback.ResponseCode,
+        "vnp_TmnCode":           callback.TmnCode,
+        "vnp_TransactionNo":     callback.TransactionNo,
+        "vnp_TransactionStatus": callback.TransactionStatus, 
+        "vnp_TxnRef":            callback.TransactionRef,
+    }
 
 	expectedHash := s.createSecureHash(params)
 
 	return expectedHash == callback.SecureHash, nil
+
 }

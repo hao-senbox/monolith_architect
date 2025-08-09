@@ -14,8 +14,7 @@ func RegisterRoutes(r *gin.Engine, handler *PaymentHandler) {
 
 		// VNPay
 		paymentGroup.POST("/vnpay", handler.CreateVNPayPayment)
-		paymentGroup.POST("/vnpay/callback", handler.HandleVNPayCallback)
-		paymentGroup.POST("/vnpay/ipn", handler.HandleVNPayIPN)
+		paymentGroup.GET("/vnpay/callback", handler.HandleVNPayCallback)
 		// VNPay
 	}
 }
