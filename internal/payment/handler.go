@@ -98,6 +98,7 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 	}
 
     var path string
+	path = "http://localhost:5173"
     switch callback.ResponseCode {
     case "00":
         path = "/payment/success"
