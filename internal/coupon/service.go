@@ -222,11 +222,6 @@ func (s *couponService) CanUseCoupon(c *gin.Context, req *CanUseCouponRequest) (
 		return nil, fmt.Errorf("invalid code coupon")
 	}
 
-	err = s.couponRepository.AddUserIsUsed(c, objectID, req.CouponCode)
-	if err != nil {
-		return nil, fmt.Errorf("invalid code coupon: %v", err)
-	}
-
 	coupon, err = s.couponRepository.FindByCode(c, req.CouponCode)
 	if err != nil {
 		return nil, fmt.Errorf("invalid code coupon: %v", err)

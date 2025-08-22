@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"modular_monolith/internal/cart"
+	"modular_monolith/internal/coupon"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,12 +23,14 @@ type OrderService interface {
 type orderService struct {
 	orderRepo   OrderRepository
 	cartService cart.CartService
+	couponRepository coupon.CouponRepository
 }
 
-func NewOrderService(orderRepo OrderRepository, cartService cart.CartService) OrderService {
+func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository) OrderService {
 	return &orderService{
 		orderRepo:   orderRepo,
 		cartService: cartService,
+		couponRepository: couponRepository,
 	}
 }
 
@@ -93,6 +96,13 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	id, err := s.orderRepo.Create(ctx, order)
 	if err != nil {
 		return "", err
+	}
+
+	if req.CouponCode != nil {
+		err = s.couponRepository.AddUserIsUsed(ctx, userID, *req.CouponCode)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	err = s.cartService.DeleteCart(ctx, req.UserID)
