@@ -65,7 +65,7 @@ func main() {
 
 	// Cấu hình CORS đơn giản - cho phép tất cả để test
 	r.Use(func(c *gin.Context) {
-		
+
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Accept, X-Requested-With")
@@ -110,20 +110,20 @@ func main() {
 	cartsService := cart.NewCartService(cartsRepository, productsRepository)
 	cartsHandler := cart.NewCartHandler(cartsService)
 
+	coupons := mongoClient.Database(cfg.MongoDB).Collection("coupons")
+	couponsRepository := coupon.NewCouponRepository(coupons)
+	couponsService := coupon.NewCouponService(couponsRepository, userService)
+	couponsHandler := coupon.NewCouponHandler(couponsService)
+
 	orders := mongoClient.Database(cfg.MongoDB).Collection("orders")
 	ordersRepository := order.NewOrderRepository(orders)
-	ordersService := order.NewOrderService(ordersRepository, cartsService)
+	ordersService := order.NewOrderService(ordersRepository, cartsService, couponsRepository)
 	ordersHandler := order.NewOrderHandler(ordersService)
 
 	payments := mongoClient.Database(cfg.MongoDB).Collection("payments")
 	paymentsRepository := payment.NewPaymentRepository(payments)
 	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository, cfg.VNPayConfig)
 	paymentsHandler := payment.NewPaymentHandler(paymentsService)
-
-	coupons := mongoClient.Database(cfg.MongoDB).Collection("coupons")
-	couponsRepository := coupon.NewCouponRepository(coupons)
-	couponsService := coupon.NewCouponService(couponsRepository, userService)
-	couponsHandler := coupon.NewCouponHandler(couponsService)
 
 	blogs := mongoClient.Database(cfg.MongoDB).Collection("blogs")
 	blogsRepository := blog.NewBlogRepository(blogs)
