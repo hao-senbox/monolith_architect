@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/coupon"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type OrderService interface {
@@ -21,20 +23,22 @@ type OrderService interface {
 }
 
 type orderService struct {
-	orderRepo   OrderRepository
-	cartService cart.CartService
+	orderRepo        OrderRepository
+	cartService      cart.CartService
 	couponRepository coupon.CouponRepository
 }
 
 func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository) OrderService {
 	return &orderService{
-		orderRepo:   orderRepo,
-		cartService: cartService,
+		orderRepo:        orderRepo,
+		cartService:      cartService,
 		couponRepository: couponRepository,
 	}
 }
 
 func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest) (string, error) {
+
+	var orderData *Order
 
 	if req.UserID == "" {
 		return "", fmt.Errorf("user_id is required")
@@ -76,24 +80,51 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		orderItems = append(orderItems, *orderItem)
 	}
 
-	order := &Order{
-		ID:        primitive.NewObjectID(),
-		UserID:    userID,
-		OrderCode: s.generateOrderCode(),
-		ShippingAddress: ShippingAddress{
-			Name:    req.Name,
-			Email:   req.Email,
-			Phone:   req.Phone,
-			Address: req.Address,
-		},
-		Status: Pending,
-		TotalPrice: carts.TotalPrice,
-		OrderItems: orderItems,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+	if req.CouponCode != nil {
+		coupon, err := s.couponRepository.FindByCode(ctx, *req.CouponCode)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return "", fmt.Errorf("invalid coupon code")
+			}
+			return "", err
+		}
+
+		orderData = &Order{
+			ID:        primitive.NewObjectID(),
+			UserID:    userID,
+			OrderCode: s.generateOrderCode(),
+			ShippingAddress: ShippingAddress{
+				Name:    req.Name,
+				Email:   req.Email,
+				Phone:   req.Phone,
+				Address: req.Address,
+			},
+			Status:     Pending,
+			TotalPrice: carts.TotalPrice - (carts.TotalPrice * coupon.Discount / 100),
+			OrderItems: orderItems,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+	} else {
+		orderData = &Order{
+			ID:        primitive.NewObjectID(),
+			UserID:    userID,
+			OrderCode: s.generateOrderCode(),
+			ShippingAddress: ShippingAddress{
+				Name:    req.Name,
+				Email:   req.Email,
+				Phone:   req.Phone,
+				Address: req.Address,
+			},
+			Status:     Pending,
+			TotalPrice: carts.TotalPrice,
+			OrderItems: orderItems,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
 	}
 
-	id, err := s.orderRepo.Create(ctx, order)
+	id, err := s.orderRepo.Create(ctx, orderData)
 	if err != nil {
 		return "", err
 	}
@@ -159,7 +190,7 @@ func (s *orderService) UpdateOrder(ctx context.Context, req *UpdateOrderRequest,
 	}
 
 	return s.orderRepo.UpdateByID(ctx, objectID, req.Status)
-	
+
 }
 
 func (s *orderService) DeleteOrder(ctx context.Context, id string) error {
@@ -174,5 +205,5 @@ func (s *orderService) DeleteOrder(ctx context.Context, id string) error {
 	}
 
 	return s.orderRepo.DeleteByID(ctx, objectID)
-	
+
 }
