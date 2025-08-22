@@ -327,15 +327,21 @@ func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPa
 
 	payment, err := s.paymentRepository.FindByID(ctx, paymentID)
 	if err != nil {
-		return fmt.Errorf("payment not found: %w", err)
+		return fmt.Errorf("failed to find payment: %w", err)
 	}
 
-	payment.VNPayTransactionNo = &callback.TransactionNo
-	payment.VNPayTransactionRef = &callback.TransactionRef
-	payment.VNPayResponseCode = &callback.ResponseCode
-	payment.VNPayBankCode = &callback.BankCode
-	payment.VNPayTransactionInfo = &callback.OrderInfo
-	payment.UpdateAt = time.Now()
+	requestCallBack := &VNPayCallbackRequest{
+		VNPayTransactionNo:   &callback.TransactionNo,
+		VNPayTransactionRef:  &callback.TransactionRef,
+		VNPayResponseCode:    &callback.ResponseCode,
+		VNPayBankCode:        &callback.BankCode,
+		VNPayTransactionInfo: &callback.OrderInfo,
+	}
+
+	err = s.paymentRepository.UpdateVnPay(ctx, paymentID, requestCallBack)
+	if err != nil {
+		return fmt.Errorf("failed to update payment: %w", err)
+	}
 
 	switch callback.ResponseCode {
 	case "00":

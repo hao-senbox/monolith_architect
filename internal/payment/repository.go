@@ -15,6 +15,7 @@ type PaymentRepository interface {
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Payment, error)
 	FindByStripePaymentID(ctx context.Context, stripePaymentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, paymentID primitive.ObjectID, status PaymentStatus) error
+	UpdateVnPay(ctx context.Context, paymentID primitive.ObjectID, req *VNPayCallbackRequest) error
 }
 
 type paymentRepository struct {
@@ -73,7 +74,7 @@ func (r *paymentRepository) UpdateStatus(ctx context.Context, paymentID primitiv
 			"updated_at": time.Now(),
 		},
 	}
-	
+
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
@@ -93,5 +94,28 @@ func (r *paymentRepository) FindByID(ctx context.Context, id primitive.ObjectID)
 	}
 
 	return &payment, nil
+
+}
+
+func (r *paymentRepository) UpdateVnPay(ctx context.Context, paymentID primitive.ObjectID, req *VNPayCallbackRequest) error {
+
+	filter := bson.M{"_id": paymentID}
 	
+	update := bson.M{
+		"$set": bson.M{
+			"vn_pay_transaction_no":   req.VNPayTransactionNo,
+			"vn_pay_transaction_ref":  req.VNPayTransactionRef,
+			"vn_pay_response_code":    req.VNPayResponseCode,
+			"vn_pay_bank_code":        req.VNPayBankCode,
+			"vn_pay_transaction_info": req.VNPayTransactionInfo,
+			"updated_at":              time.Now(),
+		},
+	}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
