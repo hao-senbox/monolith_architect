@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"modular_monolith/config"
 	"modular_monolith/internal/order"
 	"net/url"
@@ -28,6 +29,7 @@ type PaymentService interface {
 	HandleWebhook(ctx context.Context, payload []byte, signature string) error
 	CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
 	HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error
+	CronPaymentExpiration(ctx context.Context) error
 }
 
 type paymentService struct {
@@ -211,6 +213,7 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 		Currency:      "vnd",
 		Status:        Pending,
 		PaymentMethod: "vnpay",
+		ExpiredAt:     nowVN().Add(15 * time.Minute),
 		CreatedAt:     time.Now(),
 		UpdateAt:      time.Now(),
 	}
@@ -220,7 +223,7 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 		return "", err
 	}
 
-	params := s.buildVNPayParams(req, paymentID, existingOrder, clientIP)
+	params := s.buildVNPayParams(paymentID, existingOrder, clientIP)
 
 	secureHash := s.createSecureHash(params)
 
@@ -232,10 +235,17 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 
 }
 
-func (s *paymentService) buildVNPayParams(req *VNPayRequest, paymentID string, order *order.Order, clientIP string) map[string]string {
+func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, clientIP string) map[string]string {
 
 	create := nowVN()
 	expire := create.Add(15 * time.Minute)
+
+	var orderInfo string 
+	
+	if orderInfo == "" {
+		orderInfo = fmt.Sprintf("Thanh toan don hang #%s", order.ID.Hex())
+	}
+
 	params := map[string]string{
 		"vnp_Version":    s.config.Version,
 		"vnp_Command":    s.config.Command,
@@ -245,15 +255,14 @@ func (s *paymentService) buildVNPayParams(req *VNPayRequest, paymentID string, o
 		"vnp_CurrCode":   s.config.CurrCode,
 		"vnp_IpAddr":     clientIP,
 		"vnp_OrderType":  "other",
-		"vnp_Locale":     req.Locale,
-		"vnp_OrderInfo":  req.OrderInfo,
-		"vnp_ReturnUrl":  req.ReturnURL,
+		"vnp_Locale":     "vn",
+		"vnp_OrderInfo":  orderInfo,
+		"vnp_ReturnUrl":  "https://monolith-architect.onrender.com/api/v1/payment/vnpay/callback",
 		"vnp_ExpireDate": expire.Format("20060102150405"),
 		"vnp_TxnRef":     paymentID,
+		"vnp_BankCode":   "",
 	}
-	if req.BankCode != "" {
-		params["vnp_BankCode"] = req.BankCode
-	}
+
 	return params
 
 }
@@ -346,10 +355,22 @@ func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPa
 	switch callback.ResponseCode {
 	case "00":
 		payment.Status = Success
+		err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Success))
+		if err != nil {
+			return fmt.Errorf("failed to update order: %w", err)
+		}
 	case "24":
 		payment.Status = Cancelled
+		err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Cancelled))
+		if err != nil {
+			return fmt.Errorf("failed to update order: %w", err)
+		}
 	default:
 		payment.Status = Failed
+		err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Failed))
+		if err != nil {
+			return fmt.Errorf("failed to update order: %w", err)
+		}
 	}
 
 	return s.paymentRepository.UpdateStatus(ctx, paymentID, payment.Status)
@@ -375,4 +396,28 @@ func (s *paymentService) VerifyCallback(callback *VNPayCallback) (bool, error) {
 
 	return expectedHash == callback.SecureHash, nil
 
+}
+
+func (s *paymentService) CronPaymentExpiration(ctx context.Context) error {
+
+	payments, err := s.paymentRepository.FindByStatus(ctx, Pending)
+	if err != nil {
+		log.Printf("failed to find pending payments: %v", err)
+	}
+
+	for _, payment := range payments {
+		if payment.ExpiredAt.Before(nowVN()) {
+			err = s.paymentRepository.DeletePayment(ctx, payment.ID)
+			if err != nil {
+				log.Printf("failed to update payment status: %v", err)
+			}
+
+			err := s.orderRepository.DeleteByID(ctx, payment.OrderID)
+			if err != nil {
+				log.Printf("failed to delete order: %v", err)
+			}
+		}
+	}
+
+	return nil
 }

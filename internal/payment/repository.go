@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"modular_monolith/internal/shared/model"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,11 +12,13 @@ import (
 
 type PaymentRepository interface {
 	Create(ctx context.Context, payment *Payment) (string, error)
-	FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*Payment, error)
+	FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*model.Payment, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Payment, error)
+	FindByStatus(ctx context.Context, status PaymentStatus) ([]*Payment, error)
 	FindByStripePaymentID(ctx context.Context, stripePaymentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, paymentID primitive.ObjectID, status PaymentStatus) error
 	UpdateVnPay(ctx context.Context, paymentID primitive.ObjectID, req *VNPayCallbackRequest) error
+	DeletePayment(ctx context.Context, paymentID primitive.ObjectID) error
 }
 
 type paymentRepository struct {
@@ -40,9 +43,9 @@ func (r *paymentRepository) Create(ctx context.Context, payment *Payment) (strin
 
 }
 
-func (r *paymentRepository) FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*Payment, error) {
+func (r *paymentRepository) FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*model.Payment, error) {
 
-	var payment Payment
+	var payment model.Payment
 
 	err := r.collection.FindOne(ctx, bson.M{"order_id": orderID}).Decode(&payment)
 	if err != nil {
@@ -118,4 +121,28 @@ func (r *paymentRepository) UpdateVnPay(ctx context.Context, paymentID primitive
 	}
 
 	return nil
+}
+
+func (r *paymentRepository) FindByStatus(ctx context.Context, status PaymentStatus) ([]*Payment, error) {
+
+	var payments []*Payment
+
+	filter := bson.M{"status": status}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &payments); err != nil {
+		return nil, err
+	}
+
+	return payments, nil
+}
+
+func (r *paymentRepository) DeletePayment(ctx context.Context, paymentID primitive.ObjectID) error {
+	filter := bson.M{"_id": paymentID}
+	_, err := r.collection.DeleteOne(ctx, filter)
+	return err
 }

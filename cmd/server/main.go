@@ -20,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -115,13 +116,14 @@ func main() {
 	couponsService := coupon.NewCouponService(couponsRepository, userService)
 	couponsHandler := coupon.NewCouponHandler(couponsService)
 
-	orders := mongoClient.Database(cfg.MongoDB).Collection("orders")
-	ordersRepository := order.NewOrderRepository(orders)
-	ordersService := order.NewOrderService(ordersRepository, cartsService, couponsRepository)
-	ordersHandler := order.NewOrderHandler(ordersService)
-
 	payments := mongoClient.Database(cfg.MongoDB).Collection("payments")
 	paymentsRepository := payment.NewPaymentRepository(payments)
+
+	orders := mongoClient.Database(cfg.MongoDB).Collection("orders")
+	ordersRepository := order.NewOrderRepository(orders)
+	ordersService := order.NewOrderService(ordersRepository, cartsService, couponsRepository, paymentsRepository)
+	ordersHandler := order.NewOrderHandler(ordersService)
+
 	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository, cfg.VNPayConfig)
 	paymentsHandler := payment.NewPaymentHandler(paymentsService)
 
@@ -140,6 +142,21 @@ func main() {
 	category.RegisterRoutes(r, categoryHandler)
 	product.RegisterRoutes(r, productsHandler)
 	cart.RegisterRoutes(r, cartsHandler)
+
+	c := cron.New(cron.WithSeconds())
+	_, err = c.AddFunc("0 */5 * * * *", func() {
+		log.Println("🔄 Cron master running...")
+		ctx := context.Background()
+		if err := paymentsService.CronPaymentExpiration(ctx); err != nil {
+			log.Printf("CronDeletePayment failed: %v", err)
+		}
+	})
+	if err != nil {
+		log.Fatalf("AddFunc error: %v", err)
+	}
+
+	c.Start()
+	defer c.Stop()
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -1,4 +1,4 @@
-package order
+package model
 
 import (
 	"time"
@@ -9,10 +9,10 @@ import (
 type OrderStatus string
 
 const (
-	Pending    OrderStatus = "pending"
-	Paid       OrderStatus = "paid"
-	Processing OrderStatus = "processing"
-	Cancelled  OrderStatus = "cancelled"
+	OrderPending    OrderStatus = "pending"
+	OrderPaid       OrderStatus = "paid"
+	OrderProcessing OrderStatus = "processing"
+	OrderCancelled  OrderStatus = "cancelled"
 )
 
 type Order struct {

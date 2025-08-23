@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/joho/godotenv v1.5.1
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/stripe/stripe-go v70.15.0+incompatible
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/crypto v0.36.0

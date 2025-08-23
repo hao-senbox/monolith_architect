@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/coupon"
+	"modular_monolith/internal/shared/model"
+	"modular_monolith/internal/shared/ports"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -16,23 +18,25 @@ import (
 
 type OrderService interface {
 	CreateOrder(ctx context.Context, req *CreateOrderRequest) (string, error)
-	GetAllOrders(ctx context.Context) ([]Order, error)
-	GetOrderByID(ctx context.Context, id string) (*Order, error)
+	GetAllOrders(ctx context.Context) ([]*OrderResponse, error)
+	GetOrderByID(ctx context.Context, id string) (*OrderResponse, error)
 	UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error
 	DeleteOrder(ctx context.Context, id string) error
 }
 
 type orderService struct {
-	orderRepo        OrderRepository
-	cartService      cart.CartService
-	couponRepository coupon.CouponRepository
+	orderRepo         OrderRepository
+	cartService       cart.CartService
+	couponRepository  coupon.CouponRepository
+	paymentRepository ports.PaymentRepository
 }
 
-func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository) OrderService {
+func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository, paymentRepository ports.PaymentRepository) OrderService {
 	return &orderService{
-		orderRepo:        orderRepo,
-		cartService:      cartService,
-		couponRepository: couponRepository,
+		orderRepo:         orderRepo,
+		cartService:       cartService,
+		couponRepository:  couponRepository,
+		paymentRepository: paymentRepository,
 	}
 }
 
@@ -54,6 +58,10 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 
 	if req.Name == "" {
 		return "", fmt.Errorf("name is required")
+	}
+
+	if req.Type == "" {
+		return "", fmt.Errorf("type is required")
 	}
 
 	userID, err := primitive.ObjectIDFromHex(req.UserID)
@@ -92,6 +100,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		orderData = &Order{
 			ID:        primitive.NewObjectID(),
 			UserID:    userID,
+			Type:      req.Type,
 			OrderCode: s.generateOrderCode(),
 			ShippingAddress: ShippingAddress{
 				Name:    req.Name,
@@ -160,11 +169,52 @@ func (s *orderService) generateOrderCode() string {
 
 }
 
-func (s *orderService) GetAllOrders(ctx context.Context) ([]Order, error) {
-	return s.orderRepo.FindAll(ctx)
+func (s *orderService) GetAllOrders(ctx context.Context) ([]*OrderResponse, error) {
+	var data []*OrderResponse
+
+	orders, err := s.orderRepo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, order := range orders {
+
+		var payment *model.Payment
+
+		payment, err = s.paymentRepository.FindByOrderID(ctx, order.ID)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				payment = nil
+			} else {
+				return nil, err
+			}
+		}
+
+		data = append(data, &OrderResponse{
+			ID:        order.ID,
+			UserID:    order.UserID,
+			Type:      order.Type,
+			OrderCode: order.OrderCode,
+			ShippingAddress: ShippingAddress{
+				Name:    order.ShippingAddress.Name,
+				Email:   order.ShippingAddress.Email,
+				Phone:   order.ShippingAddress.Phone,
+				Address: order.ShippingAddress.Address,
+			},
+			Status:     order.Status,
+			TotalPrice: order.TotalPrice,
+			OrderItems: order.OrderItems,
+			CreatedAt:  order.CreatedAt,
+			UpdatedAt:  order.UpdatedAt,
+			Payment:    payment, 
+		})
+	}
+
+	return data, nil
 }
 
-func (s *orderService) GetOrderByID(ctx context.Context, id string) (*Order, error) {
+
+func (s *orderService) GetOrderByID(ctx context.Context, id string) (*OrderResponse, error) {
 
 	if id == "" {
 		return nil, fmt.Errorf("id is required")
@@ -175,7 +225,41 @@ func (s *orderService) GetOrderByID(ctx context.Context, id string) (*Order, err
 		return nil, fmt.Errorf("invalid id: %v", err)
 	}
 
-	return s.orderRepo.FindByID(ctx, objectID)
+	order, err := s.orderRepo.FindByID(ctx, objectID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var payment *model.Payment
+
+	payment, err = s.paymentRepository.FindByOrderID(ctx, order.ID)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, err
+	}
+
+	data := &OrderResponse{
+		ID:        order.ID,
+		UserID:    order.UserID,
+		Type:      order.Type,
+		OrderCode: order.OrderCode,
+		ShippingAddress: ShippingAddress{
+			Name:    order.ShippingAddress.Name,
+			Email:   order.ShippingAddress.Email,
+			Phone:   order.ShippingAddress.Phone,
+			Address: order.ShippingAddress.Address,
+		},
+		Status:     order.Status,
+		TotalPrice: order.TotalPrice,
+		OrderItems: order.OrderItems,
+		CreatedAt:  order.CreatedAt,
+		UpdatedAt:  order.UpdatedAt,
+		Payment:    payment,
+	}
+
+	return data, nil
 }
 
 func (s *orderService) UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error {

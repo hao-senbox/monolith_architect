@@ -40,6 +40,7 @@ type Payment struct {
 	Currency            string             `json:"currency" bson:"currency"`
 	Status              PaymentStatus      `json:"status" bson:"status"`
 	PaymentMethod       string             `json:"payment_method" bson:"payment_method"`
+	ExpiredAt           time.Time          `json:"expired_at" bson:"expired_at"`
 	CreatedAt           time.Time          `json:"created_at" bson:"created_at"`
 	UpdateAt            time.Time          `json:"updated_at" bson:"updated_at"`
 }
