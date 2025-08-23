@@ -98,7 +98,7 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 	}
 
     var path string
-	path = "http://localhost:5173"
+	pathOrigin := "http://localhost:5173"
     switch callback.ResponseCode {
     case "00":
         path = "/payment/success"
@@ -107,8 +107,8 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
     default:
         path = "/payment/failed"
     }
-    redirectURL := fmt.Sprintf("%s?txn_ref=%s", path, callback.TransactionRef)
-
+    redirectURL := fmt.Sprintf("%s%s?txn_ref=%s",pathOrigin, path, callback.TransactionRef)
+	fmt.Printf("redirectURL: %s\n", redirectURL)
     c.Redirect(http.StatusSeeOther, redirectURL)
 
 }
