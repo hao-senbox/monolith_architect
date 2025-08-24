@@ -112,6 +112,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 			Status:     Pending,
 			TotalPrice: carts.TotalPrice - (carts.TotalPrice * coupon.Discount / 100),
 			OrderItems: orderItems,
+			Discount:   &coupon.Discount,
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
 		}
