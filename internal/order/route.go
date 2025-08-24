@@ -13,5 +13,6 @@ func RegisterRoutes(r *gin.Engine, handler *OrderHandler) {
 		orderGroup.GET("/:id", handler.GetOrderByID)
 		orderGroup.PUT("/:id", handler.UpdateOrder)
 		orderGroup.DELETE("/:id", handler.DeleteOrder)
+		orderGroup.GET("/user/:user_id", handler.GetOrderByUserID)
 	}
 }

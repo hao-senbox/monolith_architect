@@ -22,6 +22,7 @@ type OrderService interface {
 	GetOrderByID(ctx context.Context, id string) (*OrderResponse, error)
 	UpdateOrder(ctx context.Context, req *UpdateOrderRequest, id string) error
 	DeleteOrder(ctx context.Context, id string) error
+	GetOrderByUserID(ctx context.Context, userID string) ([]*OrderResponse, error)
 }
 
 type orderService struct {
@@ -290,4 +291,58 @@ func (s *orderService) DeleteOrder(ctx context.Context, id string) error {
 
 	return s.orderRepo.DeleteByID(ctx, objectID)
 
+}
+
+func (s *orderService) GetOrderByUserID(ctx context.Context, userID string) ([]*OrderResponse, error) {
+
+	if userID == "" {
+		return nil, fmt.Errorf("user_id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user_id: %v", err)
+	}
+
+	orders, err := s.orderRepo.FindByUserID(ctx, objectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var data []*OrderResponse
+
+	for _, order := range orders {
+
+		var payment *model.Payment
+
+		payment, err = s.paymentRepository.FindByOrderID(ctx, order.ID)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				payment = nil
+			} else {
+				return nil, err
+			}
+		}
+
+		data = append(data, &OrderResponse{
+			ID:        order.ID,
+			UserID:    order.UserID,
+			Type:      order.Type,
+			OrderCode: order.OrderCode,
+			ShippingAddress: ShippingAddress{
+				Name:    order.ShippingAddress.Name,
+				Email:   order.ShippingAddress.Email,
+				Phone:   order.ShippingAddress.Phone,
+				Address: order.ShippingAddress.Address,
+			},
+			Status:     order.Status,
+			TotalPrice: order.TotalPrice,
+			OrderItems: order.OrderItems,
+			CreatedAt:  order.CreatedAt,
+			UpdatedAt:  order.UpdatedAt,
+			Payment:    payment,
+		})
+	}
+
+	return data, nil
 }

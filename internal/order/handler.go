@@ -96,3 +96,16 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 	
 }
+
+func (h *OrderHandler) GetOrderByUserID(c *gin.Context) {
+
+	userID := c.Param("user_id")
+
+	orders, err := h.OrderService.GetOrderByUserID(c, userID)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", orders)
+}

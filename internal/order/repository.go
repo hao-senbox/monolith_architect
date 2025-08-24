@@ -14,6 +14,7 @@ type OrderRepository interface{
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Order, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, status string) error
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
+	FindByUserID(ctx context.Context, userID primitive.ObjectID) ([]*Order, error)
 }
 
 type orderRepository struct{
@@ -84,4 +85,23 @@ func (r *orderRepository) DeleteByID(ctx context.Context, id primitive.ObjectID)
 	
 	return err
 	
+}
+
+func (r *orderRepository) FindByUserID(ctx context.Context, userID primitive.ObjectID) ([]*Order, error) {
+
+	filter := bson.M{"user_id": userID}
+
+	var orders []*Order
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.All(ctx, &orders); err != nil {
+		return nil, err
+	}
+	
+	return orders, nil
+
 }
