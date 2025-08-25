@@ -112,3 +112,24 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
     c.Redirect(http.StatusSeeOther, redirectURL)
 
 }
+
+func (h *PaymentHandler) RepurchaseOrder (c *gin.Context) {
+
+	var req VNPayRequest 
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	clientIP := helper.GetClientIP(c)
+
+	url, err := h.PaymentService.RepurchaseOrder(c, &req, clientIP)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", url)
+
+}

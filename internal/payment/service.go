@@ -28,6 +28,7 @@ type PaymentService interface {
 	ConfirmPayment(ctx context.Context, paymentIntentID string) error
 	HandleWebhook(ctx context.Context, payload []byte, signature string) error
 	CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
+	RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
 	HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error
 	CronPaymentExpiration(ctx context.Context) error
 }
@@ -201,9 +202,62 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 		return "", fmt.Errorf("order not found")
 	}
 
-	existingPaymenr, _ := s.paymentRepository.FindByOrderID(ctx, orderID)
-	if existingPaymenr != nil {
+	existingPayment, _ := s.paymentRepository.FindByOrderID(ctx, orderID)
+	if existingPayment != nil {
 		return "", fmt.Errorf("payment already exists")
+	}
+
+	payment := &Payment{
+		ID:            primitive.NewObjectID(),
+		OrderID:       orderID,
+		Amount:        existingOrder.TotalPrice,
+		Currency:      "vnd",
+		Status:        Pending,
+		PaymentMethod: "vnpay",
+		ExpiredAt:     nowVN().Add(15 * time.Minute),
+		CreatedAt:     time.Now(),
+		UpdateAt:      time.Now(),
+	}
+
+	paymentID, err := s.paymentRepository.Create(ctx, payment)
+	if err != nil {
+		return "", err
+	}
+
+	params := s.buildVNPayParams(paymentID, existingOrder, clientIP)
+
+	secureHash := s.createSecureHash(params)
+
+	params["vnp_SecureHash"] = secureHash
+
+	paymentURL := s.buildPaymentURL(params)
+
+	return paymentURL, nil
+
+}
+
+func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (string, error) {
+
+	if req.OrderID == "" {
+		return "", fmt.Errorf("order id is required")
+	}
+
+	orderID, err := primitive.ObjectIDFromHex(req.OrderID)
+	if err != nil {
+		return "", fmt.Errorf("invalid order id: %v", err)
+	}
+
+	existingOrder, _ := s.orderRepository.FindByID(ctx, orderID)
+	if existingOrder == nil {
+		return "", fmt.Errorf("order not found")
+	}
+
+	existingPayment, _ := s.paymentRepository.FindByOrderID(ctx, orderID)
+	if existingPayment != nil {
+		err := s.paymentRepository.DeletePayment(ctx, existingPayment.ID)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	payment := &Payment{
@@ -240,8 +294,8 @@ func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, 
 	create := nowVN()
 	expire := create.Add(15 * time.Minute)
 
-	var orderInfo string 
-	
+	var orderInfo string
+
 	if orderInfo == "" {
 		orderInfo = fmt.Sprintf("Thanh toan don hang #%s", order.ID.Hex())
 	}
@@ -400,7 +454,7 @@ func (s *paymentService) VerifyCallback(callback *VNPayCallback) (bool, error) {
 
 func (s *paymentService) CronPaymentExpiration(ctx context.Context) error {
 
-	payments, err := s.paymentRepository.FindByStatus(ctx, Pending)
+	payments, err := s.paymentRepository.FindByStatus(ctx)
 	if err != nil {
 		log.Printf("failed to find pending payments: %v", err)
 	}

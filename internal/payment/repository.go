@@ -14,7 +14,7 @@ type PaymentRepository interface {
 	Create(ctx context.Context, payment *Payment) (string, error)
 	FindByOrderID(ctx context.Context, orderID primitive.ObjectID) (*model.Payment, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Payment, error)
-	FindByStatus(ctx context.Context, status PaymentStatus) ([]*Payment, error)
+	FindByStatus(ctx context.Context) ([]*Payment, error)
 	FindByStripePaymentID(ctx context.Context, stripePaymentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, paymentID primitive.ObjectID, status PaymentStatus) error
 	UpdateVnPay(ctx context.Context, paymentID primitive.ObjectID, req *VNPayCallbackRequest) error
@@ -103,7 +103,7 @@ func (r *paymentRepository) FindByID(ctx context.Context, id primitive.ObjectID)
 func (r *paymentRepository) UpdateVnPay(ctx context.Context, paymentID primitive.ObjectID, req *VNPayCallbackRequest) error {
 
 	filter := bson.M{"_id": paymentID}
-	
+
 	update := bson.M{
 		"$set": bson.M{
 			"vn_pay_transaction_no":   req.VNPayTransactionNo,
@@ -123,11 +123,15 @@ func (r *paymentRepository) UpdateVnPay(ctx context.Context, paymentID primitive
 	return nil
 }
 
-func (r *paymentRepository) FindByStatus(ctx context.Context, status PaymentStatus) ([]*Payment, error) {
+func (r *paymentRepository) FindByStatus(ctx context.Context) ([]*Payment, error) {
 
 	var payments []*Payment
 
-	filter := bson.M{"status": status}
+	filter := bson.M{
+		"status": bson.M{
+			"$in": []string{"pending", "cancelled", "failed"},
+		},
+	}
 
 	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
