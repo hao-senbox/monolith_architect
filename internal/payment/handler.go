@@ -98,7 +98,7 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 	}
 
 	var path string
-	pathOrigin := "https://shimmering-faun-1418f7.netlify.app/"
+	pathOrigin := "https://shimmering-faun-1418f7.netlify.app"
 	switch callback.ResponseCode {
 	case "00":
 		path = "/payment/success"
