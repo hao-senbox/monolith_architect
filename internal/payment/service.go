@@ -28,7 +28,7 @@ type PaymentService interface {
 	ConfirmPayment(ctx context.Context, paymentIntentID string) error
 	HandleWebhook(ctx context.Context, payload []byte, signature string) error
 	CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
-	RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
+	RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (*RepurchaseOrderResponse, error)
 	HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error
 	CronPaymentExpiration(ctx context.Context) error
 }
@@ -236,36 +236,44 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 
 }
 
-func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (string, error) {
+func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (*RepurchaseOrderResponse, error) {
 
 	if req.OrderID == "" {
-		return "", fmt.Errorf("order id is required")
+		return nil, fmt.Errorf("order id is required")
 	}
 
 	orderID, err := primitive.ObjectIDFromHex(req.OrderID)
 	if err != nil {
-		return "", fmt.Errorf("invalid order id: %v", err)
+		return nil, fmt.Errorf("invalid order id: %v", err)
 	}
 
 	existingOrder, _ := s.orderRepository.FindByID(ctx, orderID)
 	if existingOrder == nil {
-		return "", fmt.Errorf("order not found")
+		return nil, fmt.Errorf("order not found")
 	}
 
 	existingPayment, _ := s.paymentRepository.FindByOrderID(ctx, orderID)
 	if existingPayment != nil {
 		err := s.paymentRepository.DeletePayment(ctx, existingPayment.ID)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
 	if existingOrder.Type == "cod" {
+
 		err := s.orderRepository.UpdateByID(ctx, orderID, string(Pending))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return "", nil
+
+		data := &RepurchaseOrderResponse{
+			Link: "",
+			Type: "cod",
+		}
+
+		return data, nil
+
 	} else if existingOrder.Type == "vnpay" {
 		payment := &Payment{
 			ID:            primitive.NewObjectID(),
@@ -281,7 +289,7 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 
 		paymentID, err := s.paymentRepository.Create(ctx, payment)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		params := s.buildVNPayParams(paymentID, existingOrder, clientIP)
@@ -292,11 +300,16 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 
 		paymentURL := s.buildPaymentURL(params)
 
-		return paymentURL, nil
+		data := &RepurchaseOrderResponse{
+			Link: paymentURL,
+			Type: "vnpay",
+		}
+
+		return data, nil
 		
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, clientIP string) map[string]string {

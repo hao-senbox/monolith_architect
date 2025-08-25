@@ -26,3 +26,8 @@ type VNPayCallback struct {
     SecureHashType string `form:"vnp_SecureHashType"`
     SecureHash     string `form:"vnp_SecureHash"`
 }
+
+type RepurchaseOrderResponse struct {
+    Type string `json:"type"`
+    Link string `json:"link"`
+}

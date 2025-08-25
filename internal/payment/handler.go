@@ -64,8 +64,8 @@ func (h *PaymentHandler) StripeWebhook(c *gin.Context) {
 
 func (h *PaymentHandler) CreateVNPayPayment(c *gin.Context) {
 
-	var req VNPayRequest 
-	
+	var req VNPayRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
 		return
@@ -82,8 +82,8 @@ func (h *PaymentHandler) CreateVNPayPayment(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", paymentRes)
 }
 
-func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) { 
-	
+func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
+
 	var callback VNPayCallback
 
 	if err := c.ShouldBind(&callback); err != nil {
@@ -97,26 +97,26 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 		return
 	}
 
-    var path string
+	var path string
 	pathOrigin := "http://localhost:5173"
-    switch callback.ResponseCode {
-    case "00":
-        path = "/payment/success"
-    case "24":
-        path = "/payment/cancelled"
-    default:
-        path = "/payment/failed"
-    }
-    redirectURL := fmt.Sprintf("%s%s?txn_ref=%s",pathOrigin, path, callback.TransactionRef)
+	switch callback.ResponseCode {
+	case "00":
+		path = "/payment/success"
+	case "24":
+		path = "/payment/cancelled"
+	default:
+		path = "/payment/failed"
+	}
+	redirectURL := fmt.Sprintf("%s%s?txn_ref=%s", pathOrigin, path, callback.TransactionRef)
 	fmt.Printf("redirectURL: %s\n", redirectURL)
-    c.Redirect(http.StatusSeeOther, redirectURL)
+	c.Redirect(http.StatusSeeOther, redirectURL)
 
 }
 
-func (h *PaymentHandler) RepurchaseOrder (c *gin.Context) {
+func (h *PaymentHandler) RepurchaseOrder(c *gin.Context) {
 
-	var req VNPayRequest 
-	
+	var req VNPayRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
 		return
@@ -124,12 +124,13 @@ func (h *PaymentHandler) RepurchaseOrder (c *gin.Context) {
 
 	clientIP := helper.GetClientIP(c)
 
-	url, err := h.PaymentService.RepurchaseOrder(c, &req, clientIP)
+	data, err := h.PaymentService.RepurchaseOrder(c, &req, clientIP)
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
 	}
 
-	helper.SendSuccess(c, http.StatusOK, "success", url)
+
+	helper.SendSuccess(c, http.StatusOK, "success", data)
 
 }
