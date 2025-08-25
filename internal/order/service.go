@@ -120,6 +120,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		orderData = &Order{
 			ID:        primitive.NewObjectID(),
 			UserID:    userID,
+			Type:      req.Type,
 			OrderCode: s.generateOrderCode(),
 			ShippingAddress: ShippingAddress{
 				Name:    req.Name,
@@ -147,10 +148,10 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		}
 	}
 
-	err = s.cartService.DeleteCart(ctx, req.UserID)
-	if err != nil {
-		return "", err
-	}
+	// err = s.cartService.DeleteCart(ctx, req.UserID)
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	return id, nil
 
