@@ -260,33 +260,43 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 		}
 	}
 
-	payment := &Payment{
-		ID:            primitive.NewObjectID(),
-		OrderID:       orderID,
-		Amount:        existingOrder.TotalPrice,
-		Currency:      "vnd",
-		Status:        Pending,
-		PaymentMethod: "vnpay",
-		ExpiredAt:     nowVN().Add(15 * time.Minute),
-		CreatedAt:     time.Now(),
-		UpdateAt:      time.Now(),
+	if existingOrder.Type == "cod" {
+		err := s.orderRepository.UpdateByID(ctx, orderID, string(Pending))
+		if err != nil {
+			return "", err
+		}
+		return "", nil
+	} else if existingOrder.Type == "vnpay" {
+		payment := &Payment{
+			ID:            primitive.NewObjectID(),
+			OrderID:       orderID,
+			Amount:        existingOrder.TotalPrice,
+			Currency:      "vnd",
+			Status:        Pending,
+			PaymentMethod: "vnpay",
+			ExpiredAt:     nowVN().Add(15 * time.Minute),
+			CreatedAt:     time.Now(),
+			UpdateAt:      time.Now(),
+		}
+
+		paymentID, err := s.paymentRepository.Create(ctx, payment)
+		if err != nil {
+			return "", err
+		}
+
+		params := s.buildVNPayParams(paymentID, existingOrder, clientIP)
+
+		secureHash := s.createSecureHash(params)
+
+		params["vnp_SecureHash"] = secureHash
+
+		paymentURL := s.buildPaymentURL(params)
+
+		return paymentURL, nil
+		
 	}
 
-	paymentID, err := s.paymentRepository.Create(ctx, payment)
-	if err != nil {
-		return "", err
-	}
-
-	params := s.buildVNPayParams(paymentID, existingOrder, clientIP)
-
-	secureHash := s.createSecureHash(params)
-
-	params["vnp_SecureHash"] = secureHash
-
-	paymentURL := s.buildPaymentURL(params)
-
-	return paymentURL, nil
-
+	return "", nil
 }
 
 func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, clientIP string) map[string]string {
