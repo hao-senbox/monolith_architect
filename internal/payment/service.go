@@ -212,7 +212,7 @@ func (s *paymentService) CreateVNPayPayment(ctx context.Context, req *VNPayReque
 		OrderID:       orderID,
 		Amount:        existingOrder.TotalPrice,
 		Currency:      "vnd",
-		Status:        Pending,
+		Status:        Failed,
 		PaymentMethod: "vnpay",
 		ExpiredAt:     nowVN().Add(15 * time.Minute),
 		CreatedAt:     time.Now(),
@@ -275,12 +275,13 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 		return data, nil
 
 	} else if existingOrder.Type == "vnpay" {
+		
 		payment := &Payment{
 			ID:            primitive.NewObjectID(),
 			OrderID:       orderID,
 			Amount:        existingOrder.TotalPrice,
 			Currency:      "vnd",
-			Status:        Pending,
+			Status:        Failed,
 			PaymentMethod: "vnpay",
 			ExpiredAt:     nowVN().Add(15 * time.Minute),
 			CreatedAt:     time.Now(),
