@@ -148,10 +148,10 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 		}
 	}
 
-	// err = s.cartService.DeleteCart(ctx, req.UserID)
-	// if err != nil {
-	// 	return "", err
-	// }
+	err = s.cartService.DeleteCart(ctx, req.UserID)
+	if err != nil {
+		return "", err
+	}
 
 	return id, nil
 
