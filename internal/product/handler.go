@@ -99,7 +99,13 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 
 func (h *ProductHandler) GetAllProducts(c *gin.Context) {
 
-	products, err := h.ProductService.GetAllProducts(c)
+	var filter ProductFilter
+	if err := c.ShouldBind(&filter); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	products, err := h.ProductService.GetAllProducts(c, &filter)
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return

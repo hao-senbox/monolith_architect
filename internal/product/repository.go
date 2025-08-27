@@ -6,14 +6,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
-	FindAll(ctx context.Context) ([]*Product, error)
+	FindAll(ctx context.Context, filter *ProductFilter) ([]*Product, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Product, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, product *Product) error
-	DeleteByID(ctx context.Context, id primitive.ObjectID) error	
+	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 }
 
 type productRepository struct {
@@ -32,24 +33,69 @@ func (r *productRepository) Create(ctx context.Context, product *Product) error 
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
-func (r *productRepository) FindAll(ctx context.Context) ([]*Product, error) {
+func (r *productRepository) FindAll(ctx context.Context, filter *ProductFilter) ([]*Product, error) {
 
-	var products []*Product
+	query := bson.M{}
 
-	cursor, err := r.collection.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
+	if filter.Name != "" {
+		query["product_name"] = bson.M{"$regex": filter.Name, "$options": "i"}
 	}
 
-	if err = cursor.All(ctx, &products); err != nil {
-		return nil, err
+	if filter.CategoryID != "" {
+		objID, err := primitive.ObjectIDFromHex(filter.CategoryID)
+		if err == nil {
+			query["category_id"] = objID
+		}
 	}
-	
-	return products, nil
+
+	if filter.MinPrice > 0 || filter.MaxPrice > 0 {
+		priceQuery := bson.M{}
+		if filter.MinPrice > 0 {
+			priceQuery["$gte"] = filter.MinPrice
+		}
+		if filter.MaxPrice > 0 {
+			priceQuery["$lte"] = filter.MaxPrice
+		}
+		query["price"] = priceQuery
+	}
+
+	if filter.Size != "" {
+		query["sizes.size"] = filter.Size
+	}
+	if filter.Surface != "" {
+		query["surface"] = filter.Surface
+	}
+
+	sortQuery := bson.M{}
+
+	switch filter.Sort {
+	case "price-asc":
+		sortQuery["price"] = 1
+	case "price-desc":
+		sortQuery["price"] = -1
+	case "name-asc":
+		sortQuery["product_name"] = 1
+	case "name-desc":
+		sortQuery["product_name"] = -1
+	}
+
+	opts := options.Find().SetSort(sortQuery)
+
+    cursor, err := r.collection.Find(ctx, query, opts)
+    if err != nil {
+        return nil, err
+    }
+
+    var products []*Product
+    if err := cursor.All(ctx, &products); err != nil {
+        return nil, err
+    }
+
+    return products, nil
 
 }
 
@@ -76,9 +122,9 @@ func (r *productRepository) UpdateByID(ctx context.Context, id primitive.ObjectI
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
-	
+
 }
 
 func (r *productRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
@@ -89,7 +135,7 @@ func (r *productRepository) DeleteByID(ctx context.Context, id primitive.ObjectI
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
-	
+
 }
