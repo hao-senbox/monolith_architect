@@ -33,3 +33,14 @@ type UpdateProductRequest struct {
 	Currency           string                     `json:"currency"`
 	Sizes              []CreateSizeOptionsRequest `json:"sizes" bson:"sizes"`
 }
+
+type ProductFilter struct {
+    Name       string  `form:"name"`
+    MinPrice   float64 `form:"min_price"`
+    MaxPrice   float64 `form:"max_price"`
+    CategoryID string  `form:"category_id"`
+    Size       string  `form:"size"`
+    Surface    string  `form:"surface"`
+    Rating     float64 `form:"rating"`
+    Sort       string  `form:"sort"`
+}

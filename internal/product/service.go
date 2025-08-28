@@ -14,7 +14,7 @@ import (
 
 type ProductService interface {
 	CreateProduct(ctx context.Context, req *CreateProductRequest, productFiles ProductFiles) error
-	GetAllProducts(ctx context.Context) ([]*ProductResponse, error)
+	GetAllProducts(ctx context.Context, filter *ProductFilter) ([]*ProductResponse, error)
 	GetProductByID(ctx context.Context, id string) (*ProductResponse, error)
 	UpdateProduct(ctx context.Context, id string, req *UpdateProductRequest, productFiles ProductFiles) error
 	DeleteProduct(ctx context.Context, id string) error
@@ -144,8 +144,8 @@ func (s *productService) CreateProduct(ctx context.Context, req *CreateProductRe
 	return s.repository.Create(ctx, product)
 }
 
-func (s *productService) GetAllProducts(ctx context.Context) ([]*ProductResponse, error) {
-	products, err := s.repository.FindAll(ctx)
+func (s *productService) GetAllProducts(ctx context.Context, filter *ProductFilter) ([]*ProductResponse, error) {
+	products, err := s.repository.FindAll(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -201,12 +201,15 @@ func (s *productService) GetAllProducts(ctx context.Context) ([]*ProductResponse
 			UpdatedAt:          product.UpdatedAt,
 		}
 
+		if filter.Rating > 0 && resp.RatingAverage < filter.Rating {
+			continue
+		}
+
 		responses = append(responses, resp)
 	}
 
 	return responses, nil
 }
-
 
 func (s *productService) GetProductByID(ctx context.Context, id string) (*ProductResponse, error) {
 
