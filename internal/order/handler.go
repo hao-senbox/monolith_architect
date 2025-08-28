@@ -33,7 +33,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusCreated, "success", id)
-	
+
 }
 
 func (h *OrderHandler) GetAllOrders(c *gin.Context) {
@@ -45,7 +45,7 @@ func (h *OrderHandler) GetAllOrders(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusOK, "success", orders)
-	
+
 }
 
 func (h *OrderHandler) GetOrderByID(c *gin.Context) {
@@ -94,7 +94,7 @@ func (h *OrderHandler) DeleteOrder(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
-	
+
 }
 
 func (h *OrderHandler) GetOrderByUserID(c *gin.Context) {

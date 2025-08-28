@@ -10,6 +10,8 @@ import (
 	"modular_monolith/internal/coupon"
 	"modular_monolith/internal/shared/model"
 	"modular_monolith/internal/shared/ports"
+	"modular_monolith/pkg/email"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,14 +32,17 @@ type orderService struct {
 	cartService       cart.CartService
 	couponRepository  coupon.CouponRepository
 	paymentRepository ports.PaymentRepository
+	EmailService      *email.EmailService
 }
 
 func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository, paymentRepository ports.PaymentRepository) OrderService {
+	emailService := email.NewEmailService()
 	return &orderService{
 		orderRepo:         orderRepo,
 		cartService:       cartService,
 		couponRepository:  couponRepository,
 		paymentRepository: paymentRepository,
+		EmailService:      emailService,
 	}
 }
 
@@ -97,7 +102,7 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 			}
 			return "", err
 		}
-
+		priceDiscount := carts.TotalPrice - (carts.TotalPrice * coupon.Discount / 100)
 		orderData = &Order{
 			ID:        primitive.NewObjectID(),
 			UserID:    userID,
@@ -110,12 +115,13 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 				Address: req.Address,
 			},
 			Status:     Pending,
-			TotalPrice: carts.TotalPrice - (carts.TotalPrice * coupon.Discount / 100),
+			TotalPrice: priceDiscount,
 			OrderItems: orderItems,
 			Discount:   &coupon.Discount,
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
 		}
+
 	} else {
 		orderData = &Order{
 			ID:        primitive.NewObjectID(),
@@ -134,11 +140,19 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
 		}
+
 	}
 
 	id, err := s.orderRepo.Create(ctx, orderData)
 	if err != nil {
 		return "", err
+	}
+
+	if strings.EqualFold(req.Type, "cod") {
+		html := BuildOrderEmailHTML(*orderData,
+			"Football Shop",
+		)
+		_ = s.EmailService.SendEmail(req.Email, "Order successful #"+orderData.OrderCode, html)
 	}
 
 	if req.CouponCode != nil {
@@ -209,13 +223,12 @@ func (s *orderService) GetAllOrders(ctx context.Context) ([]*OrderResponse, erro
 			OrderItems: order.OrderItems,
 			CreatedAt:  order.CreatedAt,
 			UpdatedAt:  order.UpdatedAt,
-			Payment:    payment, 
+			Payment:    payment,
 		})
 	}
 
 	return data, nil
 }
-
 
 func (s *orderService) GetOrderByID(ctx context.Context, id string) (*OrderResponse, error) {
 

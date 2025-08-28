@@ -10,6 +10,7 @@ import (
 	"log"
 	"modular_monolith/config"
 	"modular_monolith/internal/order"
+	"modular_monolith/pkg/email"
 	"net/url"
 	"os"
 	"sort"
@@ -37,14 +38,17 @@ type paymentService struct {
 	orderRepository   order.OrderRepository
 	paymentRepository PaymentRepository
 	config            config.VNPayConfig
+	emailServie       *email.EmailService
 }
 
 func NewPaymentService(paymentRepository PaymentRepository, orderRepository order.OrderRepository, config config.VNPayConfig) PaymentService {
+	emailService := email.NewEmailService()
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 	return &paymentService{
 		paymentRepository: paymentRepository,
 		orderRepository:   orderRepository,
 		config:            config,
+		emailServie:       emailService,
 	}
 }
 
@@ -275,7 +279,7 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 		return data, nil
 
 	} else if existingOrder.Type == "vnpay" {
-		
+
 		payment := &Payment{
 			ID:            primitive.NewObjectID(),
 			OrderID:       orderID,
@@ -307,7 +311,7 @@ func (s *paymentService) RepurchaseOrder(ctx context.Context, req *VNPayRequest,
 		}
 
 		return data, nil
-		
+
 	}
 
 	return nil, nil
@@ -335,7 +339,7 @@ func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, 
 		"vnp_OrderType":  "other",
 		"vnp_Locale":     "vn",
 		"vnp_OrderInfo":  orderInfo,
-		"vnp_ReturnUrl":  "https://monolith-architect.onrender.com/api/v1/payment/vnpay/callback",
+		"vnp_ReturnUrl":  "http://monolith-architect.onrender.com/api/v1/payment/vnpay/callback",
 		"vnp_ExpireDate": expire.Format("20060102150405"),
 		"vnp_TxnRef":     paymentID,
 		"vnp_BankCode":   "",
@@ -433,10 +437,23 @@ func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPa
 	switch callback.ResponseCode {
 	case "00":
 		payment.Status = Success
-		err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Success))
-		if err != nil {
+		if err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Success)); err != nil {
 			return fmt.Errorf("failed to update order: %w", err)
 		}
+		orderData, err := s.orderRepository.FindByID(ctx, payment.OrderID)
+		if err != nil {
+			return fmt.Errorf("failed to find order: %w", err)
+		}
+
+		html := order.BuildOrderEmailHTML(*orderData, "Football Shop")
+
+		go func(to, subject, body string) {
+			_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := s.emailServie.SendEmail(to, subject, body); err != nil {
+				_ = err
+			}
+		}(orderData.ShippingAddress.Email, "Order successful #"+orderData.OrderCode, html)
 	case "24":
 		payment.Status = Cancelled
 		err = s.orderRepository.UpdateByID(ctx, payment.OrderID, string(Cancelled))

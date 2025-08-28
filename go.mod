@@ -11,11 +11,13 @@ require (
 	github.com/stripe/stripe-go v70.15.0+incompatible
 	go.mongodb.org/mongo-driver v1.17.3
 	golang.org/x/crypto v0.36.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
 require (
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
