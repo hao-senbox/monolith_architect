@@ -42,10 +42,6 @@ func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 		return fmt.Errorf("profile of this user already exists")
 	}
 
-	if req.FullName == "" {
-		return fmt.Errorf("full name is required")
-	}
-
 	if req.Gender == "" {
 		return fmt.Errorf("gender is required")
 	}
@@ -72,7 +68,6 @@ func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 
 	profile := &Profile{
 		UserID:   userID,
-		FullName: req.FullName,
 		Gender:   req.Gender,
 		BirthDay: birthDay,
 		Avatar:   avatarURL,
@@ -98,10 +93,6 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 	existingUser, _ := s.repository.FindByUserID(ctx, userID)
 	if existingUser == nil {
 		return fmt.Errorf("profile of this user does not exist")
-	}
-
-	if req.FullName == "" {
-		return fmt.Errorf("full name is required")
 	}
 
 	if req.Gender == "" {
@@ -142,7 +133,6 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 
 	profile := &Profile{
 		UserID:   userID,
-		FullName: req.FullName,
 		Gender:   req.Gender,
 		BirthDay: birthDay,
 		Avatar:   avatarURL,

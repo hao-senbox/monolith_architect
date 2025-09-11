@@ -9,7 +9,6 @@ import (
 type Profile struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	UserID    primitive.ObjectID `json:"user_id" bson:"user_id"`
-	FullName  string             `json:"full_name" bson:"full_name"`
 	Gender    string             `json:"gender" bson:"gender"`
 	BirthDay  time.Time          `json:"birth_day" bson:"birth_day"`
 	Avatar    string             `json:"avatar" bson:"avatar"`
