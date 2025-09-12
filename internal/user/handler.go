@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"modular_monolith/helper"
 	"net/http"
 
@@ -64,7 +65,7 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
 		return
 	}
-	
+
 	user, err := h.UserService.RegisterUser(c, &req)
 
 	if err != nil {
@@ -84,7 +85,7 @@ func (h *UserHandler) LoginUser(c *gin.Context) {
 		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
 		return
 	}
-	
+
 	user, err := h.UserService.LoginUser(c, req.Email, req.Password)
 
 	if err != nil {
@@ -96,7 +97,7 @@ func (h *UserHandler) LoginUser(c *gin.Context) {
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-	
+
 	userID := c.Param("user_id")
 
 	err := h.UserService.DeleteUser(c, userID)
@@ -132,4 +133,67 @@ func (h *UserHandler) LogoutUser(c *gin.Context) {
 
 	helper.SendSuccess(c, http.StatusOK, "success", nil)
 
+}
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+
+	var req ChangePasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		helper.SendError(c, http.StatusUnauthorized, errors.New("unauthorized"), helper.ErrInvalidOperation)
+		return
+	}
+
+	err := h.UserService.ChangePassword(c, req, userID.(string))
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+
+}
+
+func (h *UserHandler) ForgotPassword(c *gin.Context) {
+
+	var req ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.UserService.ForgotPassword(c, req.Email)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+
+}
+
+func (h *UserHandler) ResetPassword(c *gin.Context) {
+
+	var req ResetPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.UserService.ResetPassword(c, req)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
+	
 }

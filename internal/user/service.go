@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"modular_monolith/internal/profile"
+	"modular_monolith/pkg/email"
 	"os"
 	"time"
 
@@ -25,17 +26,23 @@ type UserService interface {
 	ValidateToken(tokenString string) (*jwt.Token, error)
 	RefreshToken(refreshToken string) (string, string, error)
 	LogoutUser(ctx context.Context, userID string) error
+	ChangePassword(ctx context.Context, req ChangePasswordRequest, userID string) error
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, req ResetPasswordRequest) error
 }
 
 type userService struct {
 	repository     UserRepository
 	profileService profile.ProfileService
+	EmailService   *email.EmailService
 }
 
 func NewUserService(repository UserRepository, profileService profile.ProfileService) UserService {
+	emailService := email.NewEmailService()
 	return &userService{
 		repository:     repository,
 		profileService: profileService,
+		EmailService:   emailService,
 	}
 }
 
@@ -228,6 +235,27 @@ func (s *userService) GenerateToken(userID string) (string, string) {
 	return tokenString, refreshTokenString
 }
 
+func (s *userService) GenerateResetToken(userID string) (string, error) {
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", errors.New("JWT_SECRET not set")
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     jwt.NewNumericDate(time.Now().Add(time.Minute * 1)),
+	})
+
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+
+}
+
 func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	if tokenString == "" {
 		return nil, errors.New("token is required")
@@ -296,4 +324,102 @@ func (s *userService) LogoutUser(ctx context.Context, userID string) error {
 	}
 
 	return nil
+}
+
+func (s *userService) ChangePassword(ctx context.Context, req ChangePasswordRequest, userID string) error {
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+
+	existingUser, _ := s.repository.FindByUserID(ctx, objectID)
+	if existingUser == nil {
+		return fmt.Errorf("profile of this user does not exist")
+	}
+
+	check, _ := s.VerifyPassword(existingUser.Password, req.OldPassword)
+	if !check {
+		return fmt.Errorf("old password is incorrect")
+	}
+
+	updateFields := bson.M{
+		"password":   s.HashPassword(req.NewPassword),
+		"updated_at": time.Now().Format(time.RFC3339),
+	}
+
+	err = s.repository.UpdateByID(ctx, objectID, updateFields)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
+	}
+
+	return nil
+}
+
+func (s *userService) ForgotPassword(ctx context.Context, email string) error {
+
+	if email == "" {
+		return fmt.Errorf("email is required")
+	}
+
+	user, err := s.repository.FindByEmail(ctx, email)
+	if err != nil || user == nil {
+		return fmt.Errorf("invalid email")
+	}
+
+	token, err := s.GenerateResetToken(user.ID.Hex())
+	if err != nil {
+		return err
+	}
+
+	err = s.EmailService.SendEmailChangePassword(email, token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *userService) ResetPassword(ctx context.Context, req ResetPasswordRequest) error {
+
+	if req.Token == "" {
+		return fmt.Errorf("token is required")
+	}
+
+	if req.NewPassword == "" {
+		return fmt.Errorf("new password is required")
+	}
+
+	token, err := s.ValidateToken(req.Token)
+	if err != nil {
+		return err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return errors.New("invalid token claims")
+	}
+
+	user_id, ok := claims["user_id"].(string)
+	if !ok {
+		return errors.New("invalid email in token")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(user_id)
+	if err != nil {
+		return err
+	}
+
+	updateFields := bson.M{
+		"password":   s.HashPassword(req.NewPassword),
+		"updated_at": time.Now().Format(time.RFC3339),
+	}
+
+	err = s.repository.UpdateByID(ctx, objectID, updateFields)
+	if err != nil {
+		return fmt.Errorf("failed to update user password: %w", err)
+	}
+
+	return nil
+
 }

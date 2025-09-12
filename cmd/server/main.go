@@ -88,7 +88,7 @@ func main() {
 
 	usersCollection := mongoClient.Database(cfg.MongoDB).Collection("users")
 	userRepository := user.NewUserRepository(usersCollection)
-	userService := user.NewUserService(userRepository, profileService)
+	userService := user.NewUserService(userRepository, profileService, )
 	userHandler := user.NewUserHandler(userService)
 
 	categories := mongoClient.Database(cfg.MongoDB).Collection("categories")

@@ -17,5 +17,8 @@ func RegisterRoutes(r *gin.Engine, handler *UserHandler) {
 		userGroup.GET("/:user_id", middleware.JWTAuthMiddleware(), handler.GetUserByID)
 		userGroup.DELETE("/:user_id", handler.DeleteUser)
 		userGroup.GET("/refresh", handler.RefreshToken)	
+		userGroup.POST("/change-password", middleware.JWTAuthMiddleware(), handler.ChangePassword)
+		userGroup.POST("/forgot-password", handler.ForgotPassword)
+		userGroup.POST("/reset-password", handler.ResetPassword)
 	}
 }

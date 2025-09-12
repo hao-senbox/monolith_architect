@@ -8,9 +8,9 @@ func RegisterRoutes(r *gin.Engine, handler *CartHandler) {
 	cartGroup := r.Group("/api/v1/cart")
 	{
 		cartGroup.POST("", handler.CreateCart)
-		cartGroup.GET("/:user-id", handler.GetCart)
+		cartGroup.GET("/:user_id", handler.GetCart)
 		cartGroup.PUT("", handler.UpdateCart)
 		cartGroup.DELETE("", handler.DeleteItemCart)
-		cartGroup.DELETE("/:user-id", handler.DeleteCart)
+		cartGroup.DELETE("/:user_id", handler.DeleteCart)
 	}
 }

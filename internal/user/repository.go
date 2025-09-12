@@ -13,6 +13,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, userId primitive.ObjectID) (*UserWithProfile, error)
+	FindByUserID(ctx context.Context, userID primitive.ObjectID) (*User, error)
 	UpdateByID(ctx context.Context, userID primitive.ObjectID, updateFields bson.M) error
 	DeleteByID(ctx context.Context, userID primitive.ObjectID) error
 }
@@ -126,5 +127,23 @@ func (r *userRepository) UpdateByID(ctx context.Context, userID primitive.Object
 	}
 
 	return nil
+	
+}
+
+func (r *userRepository) FindByUserID(ctx context.Context, userID primitive.ObjectID) (*User, error) {
+
+	filter := bson.M{"_id": userID}
+
+	var user User
+
+	err := r.collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &user, nil
 	
 }
