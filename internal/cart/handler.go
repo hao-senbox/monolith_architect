@@ -18,7 +18,7 @@ func NewCartHandler(service CartService) *CartHandler {
 }
 
 func (h *CartHandler) CreateCart(c *gin.Context) {
-	
+
 	var req AddtoCartRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,12 +34,12 @@ func (h *CartHandler) CreateCart(c *gin.Context) {
 	}
 
 	helper.SendSuccess(c, http.StatusCreated, "success", nil)
-	
+
 }
 
 func (h *CartHandler) GetCart(c *gin.Context) {
 
-	userID := c.Param("user-id")
+	userID := c.Param("user_id")
 
 	carts, err := h.service.GetCartByUserID(c, userID)
 	if err != nil {
@@ -89,7 +89,7 @@ func (h *CartHandler) DeleteItemCart(c *gin.Context) {
 
 func (h *CartHandler) DeleteCart(c *gin.Context) {
 
-	userID := c.Param("user-id")
+	userID := c.Param("user_id")
 
 	err := h.service.DeleteCart(c, userID)
 	if err != nil {
