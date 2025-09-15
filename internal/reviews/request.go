@@ -8,6 +8,12 @@ type CreateReviewRequest struct {
 }
 
 type UpdateReviewRequest struct {
-	Rating int    `json:"rating" bson:"rating"`
-	Review string `json:"review" bson:"review"`
+	Rating     int          `json:"rating" bson:"rating"`
+	Review     string       `json:"review" bson:"review"`
+	LikeReview []LikeReview `json:"like_review" bson:"like_review"`
+}
+
+type LikeReviewRequest struct {
+	Type   string `json:"type" bson:"type"`
+	UserID string `json:"user_id" bson:"user_id"`
 }

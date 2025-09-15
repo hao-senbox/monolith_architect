@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"modular_monolith/internal/product"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -37,6 +38,25 @@ func (s *cartService) CreateCart(c context.Context, req *AddtoCartRequest) error
 	product, err := s.productRepo.FindByID(c, productID)
 	if err != nil || product == nil {
 		return fmt.Errorf("product not found")
+	}
+
+	var stock int
+
+	found := false
+	for _, s := range product.Sizes {
+		if s.Size == req.Size {
+			stock = s.Stock
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("size %s not available for this product", req.Size)
+	}
+
+	if stock < req.Quantity {
+		return fmt.Errorf("not enough stock for size %s (only %d left)", req.Size, stock)
 	}
 
 	cartItem := &CartItem{
@@ -155,5 +175,5 @@ func (s *cartService) DeleteCart(c context.Context, userID string) error {
 	}
 
 	return s.repo.DeleteCart(c, objectUserID)
-	
+
 }

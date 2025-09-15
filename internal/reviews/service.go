@@ -3,9 +3,10 @@ package reviews
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"modular_monolith/internal/user"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ReviewService interface {
@@ -14,6 +15,7 @@ type ReviewService interface {
 	GetReviewByID(ctx context.Context, id string) (*ReviewResponse, error)
 	UpdateReview(ctx context.Context, id string, req *UpdateReviewRequest) error
 	DeleteReview(ctx context.Context, id string) error
+	LikeReview(ctx context.Context, req *LikeReviewRequest, id string) error
 }
 
 type reviewService struct {
@@ -214,4 +216,69 @@ func (r *reviewService) DeleteReview(ctx context.Context, id string) error {
 
 	return r.reviewRepo.DeleteByID(ctx, objectID)
 
+}
+
+func (r *reviewService) LikeReview(ctx context.Context, req *LikeReviewRequest, id string) error {
+
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+	if req.UserID == "" {
+		return fmt.Errorf("user_id is required")
+	}
+	if req.Type == "" {
+		return fmt.Errorf("type is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid review id: %v", err)
+	}
+
+	userObjID, err := primitive.ObjectIDFromHex(req.UserID)
+	if err != nil {
+		return fmt.Errorf("invalid user id: %v", err)
+	}
+
+	review, err := r.reviewRepo.FindByID(ctx, objectID)
+	if err != nil {
+		return err
+	}
+
+	if review == nil {
+		return fmt.Errorf("review not found")
+	}
+
+	if req.Type == "like" {
+		alreadyLiked := false
+		for _, v := range review.LikeReview {
+			if v.UserID == userObjID {
+				alreadyLiked = true
+				break
+			}
+		}
+		if !alreadyLiked {
+			review.LikeReview = append(review.LikeReview, LikeReview{
+				UserID:    userObjID,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			})
+		}
+	} else if req.Type == "unlike" {
+		for i, v := range review.LikeReview {
+			if v.UserID == userObjID {
+				review.LikeReview = append(review.LikeReview[:i], review.LikeReview[i+1:]...)
+				break
+			}
+		}
+	} else {
+		return fmt.Errorf("invalid type, must be 'like' or 'unlike'")
+	}
+
+	updateReq := &UpdateReviewRequest{
+		Rating:      review.Rating,
+		Review:      review.Review,
+		LikeReview:  review.LikeReview, 
+	}
+	return r.reviewRepo.UpdateByID(ctx, objectID, updateReq)
 }

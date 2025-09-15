@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"modular_monolith/internal/cart"
 	"modular_monolith/internal/coupon"
+	"modular_monolith/internal/product"
 	"modular_monolith/internal/shared/model"
 	"modular_monolith/internal/shared/ports"
 	"modular_monolith/pkg/email"
@@ -32,16 +33,18 @@ type orderService struct {
 	cartService       cart.CartService
 	couponRepository  coupon.CouponRepository
 	paymentRepository ports.PaymentRepository
+	productRepository product.ProductRepository
 	EmailService      *email.EmailService
 }
 
-func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository, paymentRepository ports.PaymentRepository) OrderService {
+func NewOrderService(orderRepo OrderRepository, cartService cart.CartService, couponRepository coupon.CouponRepository, paymentRepository ports.PaymentRepository, productRepository product.ProductRepository) OrderService {
 	emailService := email.NewEmailService()
 	return &orderService{
 		orderRepo:         orderRepo,
 		cartService:       cartService,
 		couponRepository:  couponRepository,
 		paymentRepository: paymentRepository,
+		productRepository: productRepository,
 		EmailService:      emailService,
 	}
 }
@@ -81,7 +84,14 @@ func (s *orderService) CreateOrder(ctx context.Context, req *CreateOrderRequest)
 	}
 
 	var orderItems []OrderItem
+	
 	for _, cart := range carts.CartItems {
+
+		err = s.productRepository.UpdateQuantityByID(ctx, cart.ProductID, cart.Size, -cart.Quantity)
+		if err != nil {
+			return "", fmt.Errorf("product %s (size %s) is out of stock or insufficient", cart.ProductName, cart.Size)
+		}
+
 		orderItem := &OrderItem{
 			ProductID:    cart.ProductID,
 			ProductName:  cart.ProductName,

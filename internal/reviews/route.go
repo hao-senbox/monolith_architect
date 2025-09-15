@@ -12,5 +12,7 @@ func RegisterRoutes(r *gin.Engine, handler *ReviewHandler) {
 		reviewGroup.GET("/:id", handler.GetReviewByID)
 		reviewGroup.PUT("/:id", handler.UpdateReview)
 		reviewGroup.DELETE("/:id", handler.DeleteReview)
+
+		reviewGroup.POST("like/:id", handler.LikeReview)
 	}
 }

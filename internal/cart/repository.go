@@ -2,7 +2,6 @@ package cart
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"time"
 
@@ -79,7 +78,6 @@ func (r *cartRepository) AddToCart(ctx context.Context, cartItem *CartItem, user
 	for i, item := range cart.CartItems {
 		if item.ProductID == cartItem.ProductID {
 			if item.Size == cartItem.Size {
-				fmt.Printf("CHECKKKK")
 				cart.CartItems[i].Quantity += cartItem.Quantity
 				found = true
 				break
@@ -194,5 +192,5 @@ func (r *cartRepository) DeleteCart(ctx context.Context, userID primitive.Object
 	}
 
 	return nil
-	
+
 }

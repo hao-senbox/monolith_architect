@@ -121,7 +121,7 @@ func main() {
 
 	orders := mongoClient.Database(cfg.MongoDB).Collection("orders")
 	ordersRepository := order.NewOrderRepository(orders)
-	ordersService := order.NewOrderService(ordersRepository, cartsService, couponsRepository, paymentsRepository)
+	ordersService := order.NewOrderService(ordersRepository, cartsService, couponsRepository, paymentsRepository, productsRepository)
 	ordersHandler := order.NewOrderHandler(ordersService)
 
 	paymentsService := payment.NewPaymentService(paymentsRepository, ordersRepository, cfg.VNPayConfig)

@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,6 +15,7 @@ type ProductRepository interface {
 	FindAll(ctx context.Context, filter *ProductFilter) ([]*Product, error)
 	FindByID(ctx context.Context, id primitive.ObjectID) (*Product, error)
 	UpdateByID(ctx context.Context, id primitive.ObjectID, product *Product) error
+	UpdateQuantityByID(ctx context.Context, id primitive.ObjectID, size string, quantity int) error
 	DeleteByID(ctx context.Context, id primitive.ObjectID) error
 }
 
@@ -85,17 +87,17 @@ func (r *productRepository) FindAll(ctx context.Context, filter *ProductFilter) 
 
 	opts := options.Find().SetSort(sortQuery)
 
-    cursor, err := r.collection.Find(ctx, query, opts)
-    if err != nil {
-        return nil, err
-    }
+	cursor, err := r.collection.Find(ctx, query, opts)
+	if err != nil {
+		return nil, err
+	}
 
-    var products []*Product
-    if err := cursor.All(ctx, &products); err != nil {
-        return nil, err
-    }
+	var products []*Product
+	if err := cursor.All(ctx, &products); err != nil {
+		return nil, err
+	}
 
-    return products, nil
+	return products, nil
 
 }
 
@@ -125,6 +127,32 @@ func (r *productRepository) UpdateByID(ctx context.Context, id primitive.ObjectI
 
 	return nil
 
+}
+
+func (r *productRepository) UpdateQuantityByID(ctx context.Context, id primitive.ObjectID, size string, quantity int) error {
+
+	filter := bson.M{
+		"_id":        id,
+		"sizes.size": size,
+		"sizes.stock": bson.M{
+			"$gte": -quantity,
+		},
+	}
+
+	update := bson.M{
+		"$inc": bson.M{"sizes.$.stock": quantity},
+	}
+
+	res, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+
+	if res.ModifiedCount == 0 {
+		return fmt.Errorf("not enough stock for size %s", size)
+	}
+
+	return nil
 }
 
 func (r *productRepository) DeleteByID(ctx context.Context, id primitive.ObjectID) error {
