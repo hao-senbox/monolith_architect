@@ -30,7 +30,8 @@ type PaymentService interface {
 	HandleWebhook(ctx context.Context, payload []byte, signature string) error
 	CreateVNPayPayment(ctx context.Context, req *VNPayRequest, clientIP string) (string, error)
 	RepurchaseOrder(ctx context.Context, req *VNPayRequest, clientIP string) (*RepurchaseOrderResponse, error)
-	HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error
+	VerifyCallback(callback *VNPayCallback) (bool, error)
+	HandleVNPayIPN(ctx context.Context, callback *VNPayCallback) error
 	CronPaymentExpiration(ctx context.Context) error
 }
 
@@ -339,7 +340,8 @@ func (s *paymentService) buildVNPayParams(paymentID string, order *order.Order, 
 		"vnp_OrderType":  "other",
 		"vnp_Locale":     "vn",
 		"vnp_OrderInfo":  orderInfo,
-		"vnp_ReturnUrl":  "http://monolith-architect.onrender.com/api/v1/payment/vnpay/callback",
+		"vnp_ReturnUrl":  "http://monolith-architect.onrender.com/api/v1/payment/vnpay/return",
+		"vnp_IpnUrl":     "https:/monolith-architect.onrender.com/api/v1/payment/vnpay/ipn",
 		"vnp_ExpireDate": expire.Format("20060102150405"),
 		"vnp_TxnRef":     paymentID,
 		"vnp_BankCode":   "",
@@ -400,7 +402,7 @@ func (s *paymentService) buildPaymentURL(params map[string]string) string {
 	return u.String()
 }
 
-func (s *paymentService) HandleVNPayCallback(ctx context.Context, callback *VNPayCallback) error {
+func (s *paymentService) HandleVNPayIPN(ctx context.Context, callback *VNPayCallback) error {
 
 	isValid, err := s.VerifyCallback(callback)
 	if err != nil {

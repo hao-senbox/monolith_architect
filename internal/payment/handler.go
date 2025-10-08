@@ -82,7 +82,7 @@ func (h *PaymentHandler) CreateVNPayPayment(c *gin.Context) {
 	helper.SendSuccess(c, http.StatusOK, "success", paymentRes)
 }
 
-func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
+func (h *PaymentHandler) HandleVNPayReturn(c *gin.Context) {
 
 	var callback VNPayCallback
 
@@ -91,7 +91,7 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 		return
 	}
 
-	err := h.PaymentService.HandleVNPayCallback(c, &callback)
+	check, err := h.PaymentService.VerifyCallback(&callback)
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
@@ -99,6 +99,11 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 
 	var path string
 	pathOrigin := "https://shimmering-faun-1418f7.netlify.app"
+
+	if !check {
+		path = "/payment/failed"
+	}
+
 	switch callback.ResponseCode {
 	case "00":
 		path = "/payment/success"
@@ -107,9 +112,29 @@ func (h *PaymentHandler) HandleVNPayCallback(c *gin.Context) {
 	default:
 		path = "/payment/failed"
 	}
+
 	redirectURL := fmt.Sprintf("%s%s?txn_ref=%s", pathOrigin, path, callback.TransactionRef)
-	fmt.Printf("redirectURL: %s\n", redirectURL)
+
 	c.Redirect(http.StatusSeeOther, redirectURL)
+
+}
+
+func (h *PaymentHandler) HandleVNPayIpn(c *gin.Context) {
+
+	var callback VNPayCallback
+
+	if err := c.ShouldBind(&callback); err != nil {
+		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
+		return
+	}
+
+	err := h.PaymentService.HandleVNPayIPN(c, &callback)
+	if err != nil {
+		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
+		return
+	}
+
+	helper.SendSuccess(c, http.StatusOK, "success", nil)
 
 }
 
@@ -129,7 +154,6 @@ func (h *PaymentHandler) RepurchaseOrder(c *gin.Context) {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
 		return
 	}
-
 
 	helper.SendSuccess(c, http.StatusOK, "success", data)
 
