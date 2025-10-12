@@ -31,7 +31,8 @@ func NewProfileService(repository ProfileRepository,
 }
 
 func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRequest, file *multipart.FileHeader) error {
-
+	fmt.Printf("check: %v", req.UserID)
+	fmt.Println(req.UserID)
 	userID, err := primitive.ObjectIDFromHex(req.UserID)
 	if err != nil {
 		return fmt.Errorf("invalid user_id: %v", err)
@@ -46,7 +47,7 @@ func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 		return fmt.Errorf("gender is required")
 	}
 
-	birthDay, err := time.Parse(time.RFC3339, req.BirthDay)
+	birthDay, err := time.Parse("2006-01-02", req.BirthDay)
 	if err != nil {
 		return fmt.Errorf("invalid birth day format: %v", err)
 	}
@@ -55,15 +56,21 @@ func (s *profileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 		return fmt.Errorf("address is required")
 	}
 
-	tempPath := "/tmp/" + file.Filename
-	if err := helper.SaveUploadedFile(file, tempPath); err != nil {
-		return fmt.Errorf("failed to save avatar: %w", err)
-	}
-	defer os.Remove(tempPath)
+	var avatarURL, publicID string
+	if file == nil {
+		avatarURL = ""
+		publicID = ""
+	} else {
+		tempPath := "/tmp/" + file.Filename
+		if err := helper.SaveUploadedFile(file, tempPath); err != nil {
+			return fmt.Errorf("failed to save avatar: %w", err)
+		}
+		defer os.Remove(tempPath)
 
-	avatarURL, publicID, err := s.cloudUploader.UploadImage(ctx, tempPath, "profiles")
-	if err != nil {
-		return fmt.Errorf("failed to upload to Cloudinary: %w", err)
+		avatarURL, publicID, err = s.cloudUploader.UploadImage(ctx, tempPath, "profiles")
+		if err != nil {
+			return fmt.Errorf("failed to upload to Cloudinary: %w", err)
+		}
 	}
 
 	profile := &Profile{
@@ -110,7 +117,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 	}
 
 	if req.BirthDay != "" {
-		birthDay, err := time.Parse(time.RFC3339, req.BirthDay)
+		birthDay, err := time.Parse("2006-01-02", req.BirthDay)
 		if err != nil {
 			return fmt.Errorf("invalid birth day format: %v", err)
 		}
@@ -150,7 +157,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, req *UpdateProfileRe
 }
 
 func (s *profileService) DeleteProfile(ctx context.Context, userID string) error {
-	
+
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return err
@@ -165,6 +172,6 @@ func (s *profileService) DeleteProfile(ctx context.Context, userID string) error
 	if err != nil {
 		return err
 	}
-	
+
 	return s.repository.DeleteByID(ctx, objectID)
 }

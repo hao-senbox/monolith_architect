@@ -25,14 +25,9 @@ func (h *ProfileHandler) CreateProfile(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("avatar")
-	if err != nil {
-		helper.SendError(c, http.StatusBadRequest, err, helper.ErrInvalidRequest)
-		return
-	}
+	file, _ := c.FormFile("avatar")
 
-
-	err = h.ProfileService.CreateProfile(c, &req, file)
+	err := h.ProfileService.CreateProfile(c, &req, file)
 
 	if err != nil {
 		helper.SendError(c, http.StatusInternalServerError, err, helper.ErrInvalidOperation)
